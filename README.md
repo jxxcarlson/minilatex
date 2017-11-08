@@ -28,8 +28,8 @@ Thus the rendered text is
 If your applications simply renders strings of MiniLatex
 text to HTML, `Driver.renderMiniLatex` is all you
 need from this package.  If you wish to do some
-kind of live editing on piece of text there is a another,
-slightly method.  First, set up n `EditRecord` like this
+kind of live editing on a piece of text, there is a another,
+slightly more complex method.  First, set up an `EditRecord` like this
 
 
 ```
