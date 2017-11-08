@@ -6,6 +6,15 @@ module MiniLatex.Driver
         , update
         )
 
+{-| This library exposes functions for rendering MiniLaTeX text into HTML.
+
+
+# API
+
+@docs render, setup, getRenderedText, update
+
+-}
+
 import MiniLatex.LatexDiffer as MiniLatexDiffer
 import MiniLatex.Differ as Differ exposing (EditRecord)
 import MiniLatex.LatexState exposing (emptyLatexState)
