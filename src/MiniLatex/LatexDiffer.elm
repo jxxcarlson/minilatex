@@ -33,9 +33,11 @@ initialize2 latexState text =
         ( renderedParagraphs, latexState3 ) =
             latexExpressionList
                 |> Accumulator.renderParagraphs latexState2
-                |> List.map (\x -> "<p>\n" ++ x ++ "\n</p>")
+
+        renderedParagraphs2 =
+            renderedParagraphs |> List.map (\x -> "\n<p>\n" ++ x ++ "</p>")
     in
-        EditRecord paragraphs renderedParagraphs latexState3
+        EditRecord paragraphs renderedParagraphs2 latexState2
 
 
 
