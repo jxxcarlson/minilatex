@@ -11,6 +11,20 @@ Example:
     : String
 ```
 
+Thus the rendered text is
+```
+<p>
+
+<ul>
+ <li class="item1"> Eggs</li>
+ <li class="item1"> Milk</li>
+ <li class="item1"> Bread</li>
+
+</ul>
+
+</p>
+```
+
 If your applications simply renders strings of MiniLatex
 text to HTML, `Driver.renderMiniLatex` is all you
 need from this package.  If you wish to do some
