@@ -27,11 +27,13 @@ Thus, if
 str = "\italic{Test:}\n\n$$a^2 + b^2 = c^2$$\n\n\strong{Q.E.D.}"
 
 then `render str` yields the HTML text
-<p>
-<span class=italic>Test:</span></p>
-<p>
-$$a^2 + b^2 = c^2$$</p>
-<p>
+
+    <p>
+    <span class=italic>Test:</span></p>
+    <p>
+    $$a^2 + b^2 = c^2$$</p>
+    <p>
+
 <span class="strong">Q.E.D.</span> </p>
 
 -}
@@ -40,6 +42,12 @@ render text =
     MiniLatexDiffer.initialize2 emptyLatexState text |> getRenderedText
 
 
+{-| getRenderedText extrats the rendred text as a string
+from an EditRecord, e.g.,
+
+getRenderedText editRecord
+
+-}
 getRenderedText : EditRecord -> String
 getRenderedText editRecord =
     editRecord.renderedParagraphs |> String.join ""
