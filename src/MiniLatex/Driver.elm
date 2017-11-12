@@ -12,7 +12,7 @@ module MiniLatex.Driver
 
 # API
 
-@docs render, setup, getRenderedText, update
+@docs render, setup, getRenderedText, update, emptyEditRecord
 
 -}
 
