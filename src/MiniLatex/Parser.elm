@@ -445,6 +445,8 @@ nextCell =
 tableBody : Parser LatexExpression
 tableBody =
     succeed identity
+        |. repeat zeroOrMore arg
+        |. ws
         |= repeat oneOrMore tableRow
         |> map LatexList
 

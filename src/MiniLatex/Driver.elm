@@ -1,6 +1,7 @@
 module MiniLatex.Driver
     exposing
-        ( getRenderedText
+        ( emptyEditRecord
+        , getRenderedText
         , render
         , setup
         , update
@@ -79,6 +80,13 @@ getRenderedText editRecord =
 setup : String -> EditRecord
 setup text =
     MiniLatexDiffer.safeUpdate Differ.emptyEditRecord text
+
+
+{-| Return and empty EditRecord
+-}
+emptyEditRecord : EditRecord
+emptyEditRecord =
+    Differ.emptyEditRecord
 
 
 {-| Update the given edit record with modified text.

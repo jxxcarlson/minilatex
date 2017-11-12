@@ -147,7 +147,27 @@ suite =
                             )
                 in
                     Expect.equal parsedInput expectedOutput
-        , test "(9) table" <|
+        , test "(T.1) tablerow" <|
+            \_ ->
+                let
+                    parsedInput =
+                        run tableRow "1 & 2 & 3\n"
+
+                    expectedOutput =
+                        Ok (LatexList ([ LXString "1", LXString "2", LXString "3" ]))
+                in
+                    Expect.equal parsedInput expectedOutput
+        , test "(T.1a) tablerow" <|
+            \_ ->
+                let
+                    parsedInput =
+                        run tableRow "Hydrogen & H & 1 & 1.008 \\\\\n"
+
+                    expectedOutput =
+                        Ok (LatexList ([ LXString "Hydrogen", LXString "H", LXString "1", LXString "1.008" ]))
+                in
+                    Expect.equal parsedInput expectedOutput
+        , test "(T.2) table" <|
             \_ ->
                 let
                     parsedInput =
@@ -167,6 +187,60 @@ suite =
                                          , LXString "4"
                                          ]
                                         )
+                                     ]
+                                    )
+                                )
+                            )
+                in
+                    Expect.equal parsedInput expectedOutput
+        , test "(T.3) table" <|
+            \_ ->
+                let
+                    input =
+                        "\\begin{tabular}{l l l l}\nHydrogen & H & 1 & 1.008 \\\\\nHelium & He & 2 & 4.003 \\\\\nLithium & Li & 3 &  6.94 \\\\\nBeryllium & Be & 4 & 9.012 \\\\\n\\end{tabular}"
+
+                    parsedInput =
+                        run parse input
+
+                    expectedOutput =
+                        Ok
+                            (Environment "tabular"
+                                (LatexList
+                                    ([ LatexList
+                                        ([ LXString "Hydrogen", LXString "H", LXString "1", LXString "1.008" ])
+                                     , LatexList ([ LXString "Helium", LXString "He", LXString "2", LXString "4.003" ])
+                                     , LatexList ([ LXString "Lithium", LXString "Li", LXString "3", LXString "6.94" ])
+                                     , LatexList ([ LXString "Beryllium", LXString "Be", LXString "4", LXString "9.012" ])
+                                     ]
+                                    )
+                                )
+                            )
+                in
+                    Expect.equal parsedInput expectedOutput
+        , test "(T.3a) table" <|
+            \_ ->
+                let
+                    input =
+                        """\\begin{tabular}
+Hydrogen & H & 1 & 1.008 \\\\
+Helium & He & 2 & 4.003 \\\\
+Lithium & Li & 3 &  6.94 \\\\
+Beryllium & Be & 4 & 9.012 \\\\
+\\end{tabular}
+"""
+
+                    parsedInput =
+                        run parse input
+
+                    expectedOutput =
+                        Ok
+                            (Environment "tabular"
+                                (LatexList
+                                    ([ LatexList
+                                        ([ LXString "Hydrogen", LXString "H", LXString "1", LXString "1.008" ])
+                                     , LatexList ([ LXString "Helium", LXString "He", LXString "2", LXString "4.003" ])
+                                     , LatexList ([ LXString "Lithium", LXString "Li", LXString "3", LXString "6.94" ])
+                                     , LatexList ([ LXString "Beryllium", LXString "Be", LXString "4", LXString "9.012" ])
                                      ]
                                     )
                                 )

@@ -526,7 +526,7 @@ renderImage latexState args =
             renderArg 2 latexState args
 
         imageAttrs =
-            Debug.log "imageAttrs" (parseImageAttributes attributeString)
+            parseImageAttributes attributeString
     in
         if imageAttrs.float == "left" then
             handleFloatedImageLeft url label imageAttrs

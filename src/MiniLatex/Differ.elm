@@ -2,7 +2,6 @@ module MiniLatex.Differ
     exposing
         ( EditRecord
         , emptyEditRecord
-        , clear
         , initialize
         , isEmpty
         , paragraphify
@@ -35,6 +34,7 @@ type alias EditRecord =
     }
 
 
+emptyEditRecord : EditRecord
 emptyEditRecord =
     EditRecord [] [] emptyLatexState
 
@@ -103,11 +103,6 @@ initialize2 transformParagraphs text =
             transformParagraphs paragraphs
     in
         EditRecord paragraphs renderedParagraphs latexState
-
-
-clear : EditRecord
-clear =
-    EditRecord [] [] emptyLatexState
 
 
 isEmpty : EditRecord -> Bool

@@ -123,11 +123,11 @@ renderTransformer render updateState input acc =
         ( outputList, state ) =
             acc
 
-        renderedInput =
-            render state input
-
         newState =
             updateState input state
+
+        renderedInput =
+            render newState input
     in
         ( outputList ++ [ renderedInput ], newState )
 

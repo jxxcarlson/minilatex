@@ -52,7 +52,7 @@ suite =
                     editRecord =
                         initialize String.toUpper text
                 in
-                    Expect.equal editRecord.paragraphs [ "a", "b", "c", "d", "e", "f", "g" ]
+                    Expect.equal editRecord.paragraphs [ "a\n\n", "b\n\n", "c\n\n", "d\n\n", "e\n\n", "f\n\n", "g\n\n" ]
         , test "(4) initialize generated the correct rendered paragraph list" <|
             \_ ->
                 let
@@ -62,5 +62,5 @@ suite =
                     editRecord =
                         initialize String.toUpper text
                 in
-                    Expect.equal editRecord.renderedParagraphs [ "A", "B", "C", "D", "E", "F", "G" ]
+                    Expect.equal editRecord.renderedParagraphs [ "A\n\n", "B\n\n", "C\n\n", "D\n\n", "E\n\n", "F\n\n", "G\n\n" ]
         ]
