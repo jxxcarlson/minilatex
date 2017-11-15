@@ -215,4 +215,16 @@ suite =
                         " bozo{1}{2}"
                 in
                     Expect.equal renderOutput expectedOutput
+        , test "(XL.1) xlinkPublic" <|
+            \_ ->
+                let
+                    renderOutput =
+                        renderString2
+                            latexList
+                            "\\xlinkPublic{378}{Infinity}"
+
+                    expectedOutput =
+                        "  <a href=\"http://www.knode.io##public/378\">Infinity</a>"
+                in
+                    Expect.equal renderOutput expectedOutput
         ]

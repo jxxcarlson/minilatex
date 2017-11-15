@@ -82,7 +82,7 @@ setup text =
     MiniLatexDiffer.safeUpdate Differ.emptyEditRecord text
 
 
-{-| Return and empty EditRecord
+{-| Return an empty EditRecord
 -}
 emptyEditRecord : EditRecord
 emptyEditRecord =

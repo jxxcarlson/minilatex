@@ -2,7 +2,6 @@ module MiniLatex.KeyValueUtilities exposing (getKeyValueList, getValue)
 
 import Char
 import Parser exposing (..)
-import Regex
 
 
 -- type alias KeyValuePair =

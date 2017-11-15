@@ -244,9 +244,9 @@ renderEquationEnvironment latexState body =
         addendum =
             if eqno > 0 then
                 if s1 > 0 then
-                    "\\tag{" ++ (toString s1) ++ "." ++ (toString eqno) ++ "}\n"
+                    "\\tag{" ++ (toString s1) ++ "." ++ (toString eqno) ++ "}"
                 else
-                    "\\tag{" ++ (toString eqno) ++ "}\n"
+                    "\\tag{" ++ (toString eqno) ++ "}"
             else
                 ""
 

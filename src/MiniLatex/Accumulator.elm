@@ -8,7 +8,6 @@ module MiniLatex.Accumulator
 
 import List.Extra
 import String.Extra
-import Regex
 import Parser as P
 import MiniLatex.Parser as Parser exposing (macro, parseParagraph, LatexExpression(..))
 import MiniLatex.Differ as Differ exposing (EditRecord)

@@ -5,7 +5,6 @@ import MiniLatex.Differ as Differ exposing (EditRecord)
 import MiniLatex.LatexState exposing (LatexState, emptyLatexState)
 import MiniLatex.Render as Render exposing (render, renderLatexList)
 import String.Extra
-import Regex
 
 
 initialize : String -> EditRecord

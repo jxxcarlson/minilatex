@@ -41,7 +41,8 @@ emptyEditRecord =
 
 paragraphify : String -> List String
 paragraphify text =
-    Regex.split Regex.All (Regex.regex "\n\n+") text
+    --String.split "\n\n" text
+    Regex.split Regex.All (Regex.regex "\\n\\n+") text
         |> List.filter (\x -> String.length x /= 0)
         |> List.map ((String.trim) >> (\x -> x ++ "\n\n"))
 
@@ -145,8 +146,14 @@ diff u v =
 
         y =
             v |> List.drop la |> dropLast lb
+
+        bb =
+            if la == (List.length u) then
+                []
+            else
+                b
     in
-        DiffRecord a b x y
+        DiffRecord a bb x y
 
 
 renderList : (String -> String) -> List String -> List String

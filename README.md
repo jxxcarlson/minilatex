@@ -1,6 +1,8 @@
 MiniLaTeX is a subset of LaTeX that can be rendered
 into pdf by standard tools such as `pdflatex` or
-into HTML by
+into HTML by a suitable application, e.g.,
+<a href="https://jxxcarlson.github.io/app/minilatex/src/index.html">MiniLateX Demo</a>
+or <a href="http://www.knode.io">www.knode.io</a>.
 
 Example:
 ```
@@ -61,6 +63,8 @@ with the MiniLatex API:
 4. `MiniLatex.update editRecord text`
 
 The above assumes `import MiniLatex.Driver as MiniLatex`
+
+For an example of an app in which MiniLatex is used, see https://ellie-app.com/pnwBbs4vqa1/9
 
 **Acknowledgments**  I wish to acknowledge the generous help that I have received throughout this project from the community at http://elmlang.slack.com, with special thanks to Ilias van Peer (@ilias).
 

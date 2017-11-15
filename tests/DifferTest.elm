@@ -26,7 +26,14 @@ suite : Test
 suite =
     describe "Differ"
         -- Nest as many descriptions as you like.
-        [ test "(1) compute diff of p1 and p2 " <|
+        [ test "(0) compute diff of p1 and p1 " <|
+            \_ ->
+                let
+                    diffRecord =
+                        Debug.log "diffRecord 0" (diff p1 p1)
+                in
+                    Expect.equal diffRecord.middleSegmentInTarget []
+        , test "(1) compute diff of p1 and p2 " <|
             \_ ->
                 let
                     diffRecord =
@@ -37,7 +44,7 @@ suite =
             \_ ->
                 let
                     diffRecord =
-                        diff p1 p2
+                        Debug.log "diffRecord 2" (diff p1 p2)
 
                     r2 =
                         renderDiff String.toUpper diffRecord r1
@@ -63,4 +70,17 @@ suite =
                         initialize String.toUpper text
                 in
                     Expect.equal editRecord.renderedParagraphs [ "A\n\n", "B\n\n", "C\n\n", "D\n\n", "E\n\n", "F\n\n", "G\n\n" ]
+        , test "(5) identity diff" <|
+            \_ ->
+                let
+                    text =
+                        "a\n\nb\n\nc\n\nd\n\ne\n\nf\n\ng"
+
+                    editRecord =
+                        initialize String.toUpper text
+
+                    newEditRecord =
+                        update String.toUpper editRecord text
+                in
+                    Expect.equal editRecord.renderedParagraphs newEditRecord.renderedParagraphs
         ]
