@@ -21,21 +21,27 @@ import MiniLatex.Differ as Differ exposing (EditRecord)
 import MiniLatex.LatexState exposing (emptyLatexState)
 
 
-{-| The function call render sourceTest produces
-an HTML string corresponding to the MiniLatex source text.
-Thus, if
+{-| The function call `render macros sourceTest` produces
+an HTML string corresponding to the MiniLatex source text
+`sourceText`. The macro definitions in `macros`
+are appended to this string and are used by MathJax
+to render purely mathematical text. The `macros` string
+may be empty. Thus, if
 
-str = "\italic{Test:}\n\n$$a^2 + b^2 = c^2$$\n\n\strong{Q.E.D.}"
+macros = ""
+source = "\italic{Test:}\n\n$$a^2 + b^2 = c^2$$\n\n\strong{Q.E.D.}"
 
-then `render str` yields the HTML text
+then `render macros source` yields the HTML text
 
     <p>
     <span class=italic>Test:</span></p>
-    <p>
-    $$a^2 + b^2 = c^2$$</p>
+      <p>
+        $$a^2 + b^2 = c^2$$
+      </p>
     <p>
 
-<span class="strong">Q.E.D.</span> </p>
+    <span class="strong">Q.E.D.</span>
+    </p>
 
 -}
 render : String -> String -> String
@@ -43,12 +49,6 @@ render macroDefinitions text =
     MiniLatexDiffer.initialize2 emptyLatexState text |> getRenderedText macroDefinitions
 
 
-{-| getRenderedText extrats the rendred text as a string
-from an EditRecord, e.g.,
-
-getRenderedText editRecord
-
--}
 pTags : EditRecord -> List String
 pTags editRecord =
     let
@@ -67,10 +67,10 @@ pTags editRecord =
         prefix ++ infix ++ suffix
 
 
-{-| Using a string of macro defintions (which may be empty),
-and the renderedParagraph list of the editRecord,
+{-| Using the renderedParagraph list of the editRecord,
 return a string representing the HTML of the paragraph list
-of the editRecord.
+of the editRecord. Append the macroDefinitions for use
+by MathJax.
 -}
 getRenderedText : String -> EditRecord -> String
 getRenderedText macroDefinitions editRecord =
@@ -88,25 +88,32 @@ getRenderedText macroDefinitions editRecord =
 
 {-| Create an EditRecord from a string of MiniLaTeX text:
 
-> editRecord = setup str
-> { paragraphs =
+> editRecord = setup 0 source
 
-        [ "\\italic{Test:}\n\n"
-        , "$$a^2 + b^2 = c^2$$\n\n"
-        , "\\strong{Q.E.D.}\n\n"
-        ]
-    , renderedParagraphs =
-        [ "\n<p>\n  <span class=italic>Test:</span></p>"
-        , "\n<p>\n $$a^2 + b^2 = c^2$$</p>"
-        , "\n<p>\n  <span class=\"strong\">Q.E.D.</span> </p>"
-        ]
-    , latexState =
-        { counters = Dict.fromList [ ( "eqno", 0 ), ( "s1", 0 ), ( "s2", 0 ), ( "s3", 0 ), ( "tno", 0 ) ]
-        , crossReferences = Dict.fromList []
-        }
-    }
-
-    : MiniLatex.Differ.EditRecord
+        { paragraphs =
+            [ "\\italic{Test:}\n\n"
+            , "$$a^2 + b^2 = c^2$$\n\n"
+            , "\\strong{Q.E.D.}\n\n"
+            ]
+        , renderedParagraphs =
+            [ "  <span class=italic>Test:</span>"
+            , " $$a^2 + b^2 = c^2$$"
+            , "  <span class=\"strong\">Q.E.D.</span> "
+            ]
+        , latexState =
+            { counters =
+                Dict.fromList
+                    [ ( "eqno", 0 )
+                    , ( "s1", 0 )
+                    , ( "s2", 0 )
+                    , ( "s3", 0 )
+                    , ( "tno", 0 )
+                    ]
+            , crossReferences = Dict.fromList []
+            }
+        , idList = []
+        , idListStart = 0
+        } : MiniLatex.Differ.EditRecord
 
 -}
 setup : Int -> String -> EditRecord
@@ -115,6 +122,24 @@ setup seed text =
 
 
 {-| Return an empty EditRecord
+
+        { paragraphs = []
+        , renderedParagraphs = []
+        , latexState =
+            { counters =
+                Dict.fromList
+                    [ ( "eqno", 0 )
+                    , ( "s1", 0 )
+                    , ( "s2", 0 )
+                    , ( "s3", 0 )
+                    , ( "tno", 0 )
+                    ]
+            , crossReferences = Dict.fromList []
+            }
+        , idList = []
+        , idListStart = 0
+        }
+
 -}
 emptyEditRecord : EditRecord
 emptyEditRecord =
@@ -124,11 +149,11 @@ emptyEditRecord =
 {-| Update the given edit record with modified text.
 Thus, if
 
-str2 = "\italic{Test:}\n\n$$a^3 + b^3 = c^3$$\n\n\strong{Q.E.D.}"
+    source2 = "\italic{Test:}\n\n$$a^3 + b^3 = c^3$$\n\n\strong{Q.E.D.}"
 
 then we can say
 
-editRecord2 = update str2 editRecord
+editRecord2 = update 0 source2 editRecord
 
 The `update` function attempts to re-render only the paragraph
 which have been changed. It will always update the text correctly,
