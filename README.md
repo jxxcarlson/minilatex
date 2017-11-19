@@ -10,7 +10,7 @@ or <a href="http://www.knode.io">www.knode.io</a>.  For a technical discussion,
 see the Hackernoon article,
 <a href="https://hackernoon.com/towards-latex-in-the-browser-2ff4d94a0c08">Towards LaTeX in the Browser</a>.
 
-You can also experiment with MiniLaTeX using this <a href="https://ellie-app.com/3n2QNQdTMa1/0">Ellie</a>.
+You can also experiment with MiniLaTeX using this <a href="https://ellie-app.com/3n2QNQdTMa1/1">Ellie</a>.
 
 
 Basics
