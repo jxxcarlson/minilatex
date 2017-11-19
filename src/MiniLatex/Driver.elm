@@ -38,9 +38,9 @@ then `render str` yields the HTML text
 <span class="strong">Q.E.D.</span> </p>
 
 -}
-render : String -> String
-render text =
-    MiniLatexDiffer.initialize2 emptyLatexState text |> getRenderedText
+render : String -> String -> String
+render macroDefinitions text =
+    MiniLatexDiffer.initialize2 emptyLatexState text |> getRenderedText macroDefinitions
 
 
 {-| getRenderedText extrats the rendred text as a string
@@ -49,9 +49,41 @@ from an EditRecord, e.g.,
 getRenderedText editRecord
 
 -}
-getRenderedText : EditRecord -> String
-getRenderedText editRecord =
-    editRecord.renderedParagraphs |> String.join ""
+pTags : EditRecord -> List String
+pTags editRecord =
+    let
+        prefix =
+            List.repeat editRecord.idListStart "<p>"
+
+        n =
+            List.length editRecord.paragraphs - (editRecord.idListStart + List.length editRecord.idList)
+
+        suffix =
+            List.repeat n "<p>"
+
+        infix =
+            editRecord.idList |> List.map (\x -> "<p id=\"" ++ x ++ "\">")
+    in
+        prefix ++ infix ++ suffix
+
+
+{-| Using a string of macro defintions (which may be empty),
+and the renderedParagraph list of the editRecord,
+return a string representing the HTML of the paragraph list
+of the editRecord.
+-}
+getRenderedText : String -> EditRecord -> String
+getRenderedText macroDefinitions editRecord =
+    let
+        paragraphs =
+            editRecord.renderedParagraphs
+
+        pTagList =
+            pTags editRecord
+    in
+        List.map2 (\para pTag -> pTag ++ "\n" ++ para ++ "\n</p>") paragraphs pTagList
+            |> String.join "\n\n"
+            |> (\x -> x ++ "\n\n" ++ macroDefinitions)
 
 
 {-| Create an EditRecord from a string of MiniLaTeX text:
@@ -77,9 +109,9 @@ getRenderedText editRecord =
     : MiniLatex.Differ.EditRecord
 
 -}
-setup : String -> EditRecord
-setup text =
-    MiniLatexDiffer.safeUpdate Differ.emptyEditRecord text
+setup : Int -> String -> EditRecord
+setup seed text =
+    MiniLatexDiffer.safeUpdate seed Differ.emptyEditRecord text
 
 
 {-| Return an empty EditRecord
@@ -104,6 +136,6 @@ but its efficiency depends on the nature of the edit. This is
 because the "differ" used to detect changes is rather crude.
 
 -}
-update : EditRecord -> String -> EditRecord
-update editRecord text =
-    MiniLatexDiffer.safeUpdate editRecord text
+update : Int -> EditRecord -> String -> EditRecord
+update seed editRecord text =
+    MiniLatexDiffer.safeUpdate seed editRecord text

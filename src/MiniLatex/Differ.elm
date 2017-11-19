@@ -27,16 +27,25 @@ type alias DiffRecord =
     }
 
 
+type alias DiffPacket =
+    { renderedParagraphs : List String
+    , idList : List String
+    , idListStart : Int
+    }
+
+
 type alias EditRecord =
     { paragraphs : List String
     , renderedParagraphs : List String
     , latexState : LatexState
+    , idList : List String
+    , idListStart : Int
     }
 
 
 emptyEditRecord : EditRecord
 emptyEditRecord =
-    EditRecord [] [] emptyLatexState
+    EditRecord [] [] emptyLatexState [] 0
 
 
 paragraphify : String -> List String
@@ -88,10 +97,16 @@ initialize transformer text =
         paragraphs =
             paragraphify text
 
+        n =
+            List.length paragraphs
+
+        idList =
+            List.range 1 n |> List.map (prefixer 0)
+
         renderedParagraphs =
             List.map transformer paragraphs
     in
-        EditRecord paragraphs renderedParagraphs emptyLatexState
+        EditRecord paragraphs renderedParagraphs emptyLatexState idList 0
 
 
 initialize2 : (List String -> ( List String, LatexState )) -> String -> EditRecord
@@ -100,10 +115,16 @@ initialize2 transformParagraphs text =
         paragraphs =
             paragraphify text
 
+        n =
+            List.length paragraphs
+
+        idList =
+            List.range 1 n |> List.map (prefixer 0)
+
         ( renderedParagraphs, latexState ) =
             transformParagraphs paragraphs
     in
-        EditRecord paragraphs renderedParagraphs latexState
+        EditRecord paragraphs renderedParagraphs latexState idList 0
 
 
 isEmpty : EditRecord -> Bool
@@ -111,8 +132,8 @@ isEmpty editRecord =
     editRecord.paragraphs == [] && editRecord.renderedParagraphs == []
 
 
-update : (String -> String) -> EditRecord -> String -> EditRecord
-update transformer editorRecord text =
+update : Int -> (String -> String) -> EditRecord -> String -> EditRecord
+update seed transformer editorRecord text =
     let
         newParagraphs =
             paragraphify text
@@ -120,10 +141,10 @@ update transformer editorRecord text =
         diffRecord =
             diff editorRecord.paragraphs newParagraphs
 
-        newRenderedParagraphs =
-            renderDiff transformer diffRecord editorRecord.renderedParagraphs
+        diffPacket =
+            renderDiff seed transformer diffRecord editorRecord.renderedParagraphs
     in
-        EditRecord newParagraphs newRenderedParagraphs emptyLatexState
+        EditRecord newParagraphs diffPacket.renderedParagraphs emptyLatexState diffPacket.idList diffPacket.idListStart
 
 
 diff : List String -> List String -> DiffRecord
@@ -156,13 +177,13 @@ diff u v =
         DiffRecord a bb x y
 
 
-renderList : (String -> String) -> List String -> List String
-renderList transformer inputList =
-    List.map transformer inputList
+prefixer : Int -> Int -> String
+prefixer b k =
+    "p." ++ (toString b) ++ "." ++ (toString k)
 
 
-renderDiff : (String -> String) -> DiffRecord -> List String -> List String
-renderDiff renderer diffRecord renderedStringList =
+renderDiff : Int -> (String -> String) -> DiffRecord -> List String -> DiffPacket
+renderDiff seed renderer diffRecord renderedStringList =
     let
         ii =
             List.length diffRecord.commonInitialSegment
@@ -176,7 +197,16 @@ renderDiff renderer diffRecord renderedStringList =
         terminalSegmentRendered =
             takeLast it renderedStringList
 
+        n =
+            List.length diffRecord.middleSegmentInTarget
+
+        idList =
+            List.range 1 n |> List.map (prefixer seed)
+
         middleSegmentRendered =
-            (renderList renderer) diffRecord.middleSegmentInTarget
+            (List.map renderer) diffRecord.middleSegmentInTarget
     in
-        initialSegmentRendered ++ middleSegmentRendered ++ terminalSegmentRendered
+        { renderedParagraphs = initialSegmentRendered ++ middleSegmentRendered ++ terminalSegmentRendered
+        , idList = idList
+        , idListStart = ii
+        }

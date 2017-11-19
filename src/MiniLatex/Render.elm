@@ -25,10 +25,10 @@ import String.Extra
 transformText : LatexState -> String -> String
 transformText latexState text =
     renderString latexList latexState text
-        |> \str -> "\n<p>" ++ str ++ "</p>\n"
 
 
 
+-- |> \str -> "\n<p>" ++ str ++ "</p>\n"
 {- FUNCTIONS FOR TESTING THINGS -}
 
 

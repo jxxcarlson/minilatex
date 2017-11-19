@@ -34,9 +34,11 @@ initialize2 latexState text =
                 |> Accumulator.renderParagraphs latexState2
 
         renderedParagraphs2 =
-            renderedParagraphs |> List.map (\x -> "\n<p>\n" ++ x ++ "</p>")
+            renderedParagraphs
+
+        --|> List.map (\x -> "\n<p>\n" ++ x ++ "</p>")
     in
-        EditRecord paragraphs renderedParagraphs2 latexState2
+        EditRecord paragraphs renderedParagraphs2 latexState2 [] 0
 
 
 
@@ -58,19 +60,19 @@ initialize2 latexState text =
 --         EditRecord paragraphs renderedParagraphs latexState
 
 
-update : EditRecord -> String -> EditRecord
-update editorRecord text =
+update : Int -> EditRecord -> String -> EditRecord
+update seed editorRecord text =
     text
         |> prepareContentForLatex
-        |> Differ.update (Render.transformText editorRecord.latexState) editorRecord
+        |> Differ.update seed (Render.transformText editorRecord.latexState) editorRecord
 
 
-safeUpdate : EditRecord -> String -> EditRecord
-safeUpdate editRecord content =
+safeUpdate : Int -> EditRecord -> String -> EditRecord
+safeUpdate seed editRecord content =
     if Differ.isEmpty editRecord then
         initialize2 emptyLatexState content
     else
-        update editRecord content
+        update seed editRecord content
 
 
 {-| replaceStrings is used by the document prepreprocessor
