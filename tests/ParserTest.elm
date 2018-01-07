@@ -1,13 +1,11 @@
 module ParserTest exposing (..)
 
-import MiniLatex.Parser exposing (..)
-import Parser exposing (run)
-
-
 -- http://package.elm-lang.org/packages/elm-community/elm-test/latest
 
 import Expect exposing (Expectation)
-import Fuzz exposing (Fuzzer, list, int, string)
+import Fuzz exposing (Fuzzer, int, list, string)
+import MiniLatex.Parser exposing (..)
+import Parser exposing (run)
 import Test exposing (..)
 
 
@@ -24,7 +22,7 @@ suite =
                     expectedOutput =
                         Ok (Comment "% This is a comment\n")
                 in
-                    Expect.equal parsedInput expectedOutput
+                Expect.equal parsedInput expectedOutput
         , test "(2) InlineMath" <|
             \_ ->
                 let
@@ -34,7 +32,7 @@ suite =
                     expectedOutput =
                         Ok (InlineMath "a^2 = 7")
                 in
-                    Expect.equal parsedInput expectedOutput
+                Expect.equal parsedInput expectedOutput
         , test "(3) DisplayMath" <|
             \_ ->
                 let
@@ -44,7 +42,7 @@ suite =
                     expectedOutput =
                         Ok (DisplayMath "b^2 = 3")
                 in
-                    Expect.equal parsedInput expectedOutput
+                Expect.equal parsedInput expectedOutput
         , test "(4) DisplayMath (Brackets)" <|
             \_ ->
                 let
@@ -54,7 +52,7 @@ suite =
                     expectedOutput =
                         Ok (DisplayMath "b^2 = 3")
                 in
-                    Expect.equal parsedInput expectedOutput
+                Expect.equal parsedInput expectedOutput
         , test "(5) latexList words and macros" <|
             \_ ->
                 let
@@ -65,17 +63,16 @@ suite =
                         -- Ok (LatexList ([ LXString "a b", Macro "foo" [], Macro "bar" [ "1" ], Macro "baz" [ "1", "2" ] ]))
                         Ok
                             (LatexList
-                                ([ LXString "a b"
-                                 , Macro "foo" []
-                                 , Macro "bar"
-                                    ([ LatexList ([ LXString "1" ]) ])
-                                 , Macro "baz"
-                                    ([ LatexList ([ LXString "1" ]), LatexList ([ LXString "2" ]) ])
-                                 ]
-                                )
+                                [ LXString "a b"
+                                , Macro "foo" []
+                                , Macro "bar"
+                                    [ LatexList [ LXString "1" ] ]
+                                , Macro "baz"
+                                    [ LatexList [ LXString "1" ], LatexList [ LXString "2" ] ]
+                                ]
                             )
                 in
-                    Expect.equal parsedInput expectedOutput
+                Expect.equal parsedInput expectedOutput
         , test "(6) Environment" <|
             \_ ->
                 let
@@ -86,17 +83,16 @@ suite =
                         Ok
                             (Environment "theorem"
                                 (LatexList
-                                    ([ LXString "Infinity is"
-                                     , Macro "emph" ([ LatexList ([ LXString "very" ]) ])
-                                     , LXString "large:"
-                                     , InlineMath "\\infinity^2 = \\infinity"
-                                     , LXString "."
-                                     ]
-                                    )
+                                    [ LXString "Infinity is"
+                                    , Macro "emph" [ LatexList [ LXString "very" ] ]
+                                    , LXString "large:"
+                                    , InlineMath "\\infinity^2 = \\infinity"
+                                    , LXString "."
+                                    ]
                                 )
                             )
                 in
-                    Expect.equal parsedInput expectedOutput
+                Expect.equal parsedInput expectedOutput
         , test "(7) Nested Environment" <|
             \_ ->
                 let
@@ -107,24 +103,22 @@ suite =
                         Ok
                             (Environment "th"
                                 (LatexList
-                                    ([ Environment "a" (LatexList ([ DisplayMath "hahah", Environment "x" (LatexList ([ LXString "yy" ])) ]))
-                                     , Environment "a"
+                                    [ Environment "a" (LatexList [ DisplayMath "hahah", Environment "x" (LatexList [ LXString "yy" ]) ])
+                                    , Environment "a"
                                         (LatexList
-                                            ([ LXString "a{1}{2} b c yoko{1}"
-                                             , InlineMath "foo"
-                                             , LXString "yada"
-                                             , DisplayMath "bar"
-                                             , LXString "a b c"
-                                             , Environment "u" (LatexList ([ LXString "yy" ]))
-                                             ]
-                                            )
+                                            [ LXString "a{1}{2} b c yoko{1}"
+                                            , InlineMath "foo"
+                                            , LXString "yada"
+                                            , DisplayMath "bar"
+                                            , LXString "a b c"
+                                            , Environment "u" (LatexList [ LXString "yy" ])
+                                            ]
                                         )
-                                     ]
-                                    )
+                                    ]
                                 )
                             )
                 in
-                    Expect.equal parsedInput expectedOutput
+                Expect.equal parsedInput expectedOutput
         , test "(8) Itemized List" <|
             \_ ->
                 let
@@ -134,19 +128,17 @@ suite =
                     expectedOutput =
                         Ok
                             (LatexList
-                                ([ Environment "itemize"
+                                [ Environment "itemize"
                                     (LatexList
-                                        ([ Item 1 (LatexList ([ LXString "aaa." ]))
-                                         , Item 1 (LatexList ([ LXString "bbb." ]))
-                                         , Item 2 (LatexList ([ LXString "xx" ]))
-                                         ]
-                                        )
+                                        [ Item 1 (LatexList [ LXString "aaa." ])
+                                        , Item 1 (LatexList [ LXString "bbb." ])
+                                        , Item 2 (LatexList [ LXString "xx" ])
+                                        ]
                                     )
-                                 ]
-                                )
+                                ]
                             )
                 in
-                    Expect.equal parsedInput expectedOutput
+                Expect.equal parsedInput expectedOutput
         , test "(T.1) tablerow" <|
             \_ ->
                 let
@@ -154,9 +146,9 @@ suite =
                         run tableRow "1 & 2 & 3\n"
 
                     expectedOutput =
-                        Ok (LatexList ([ LXString "1", LXString "2", LXString "3" ]))
+                        Ok (LatexList [ LXString "1", LXString "2", LXString "3" ])
                 in
-                    Expect.equal parsedInput expectedOutput
+                Expect.equal parsedInput expectedOutput
         , test "(T.1a) tablerow" <|
             \_ ->
                 let
@@ -164,9 +156,9 @@ suite =
                         run tableRow "Hydrogen & H & 1 & 1.008 \\\\\n"
 
                     expectedOutput =
-                        Ok (LatexList ([ LXString "Hydrogen", LXString "H", LXString "1", LXString "1.008" ]))
+                        Ok (LatexList [ LXString "Hydrogen", LXString "H", LXString "1", LXString "1.008" ])
                 in
-                    Expect.equal parsedInput expectedOutput
+                Expect.equal parsedInput expectedOutput
         , test "(T.2) table" <|
             \_ ->
                 let
@@ -177,22 +169,19 @@ suite =
                         Ok
                             (Environment "tabular"
                                 (LatexList
-                                    ([ LatexList
-                                        ([ LXString "1"
-                                         , LXString "2"
-                                         ]
-                                        )
-                                     , LatexList
-                                        ([ LXString "3"
-                                         , LXString "4"
-                                         ]
-                                        )
-                                     ]
-                                    )
+                                    [ LatexList
+                                        [ LXString "1"
+                                        , LXString "2"
+                                        ]
+                                    , LatexList
+                                        [ LXString "3"
+                                        , LXString "4"
+                                        ]
+                                    ]
                                 )
                             )
                 in
-                    Expect.equal parsedInput expectedOutput
+                Expect.equal parsedInput expectedOutput
         , test "(T.3) table" <|
             \_ ->
                 let
@@ -206,17 +195,16 @@ suite =
                         Ok
                             (Environment "tabular"
                                 (LatexList
-                                    ([ LatexList
-                                        ([ LXString "Hydrogen", LXString "H", LXString "1", LXString "1.008" ])
-                                     , LatexList ([ LXString "Helium", LXString "He", LXString "2", LXString "4.003" ])
-                                     , LatexList ([ LXString "Lithium", LXString "Li", LXString "3", LXString "6.94" ])
-                                     , LatexList ([ LXString "Beryllium", LXString "Be", LXString "4", LXString "9.012" ])
-                                     ]
-                                    )
+                                    [ LatexList
+                                        [ LXString "Hydrogen", LXString "H", LXString "1", LXString "1.008" ]
+                                    , LatexList [ LXString "Helium", LXString "He", LXString "2", LXString "4.003" ]
+                                    , LatexList [ LXString "Lithium", LXString "Li", LXString "3", LXString "6.94" ]
+                                    , LatexList [ LXString "Beryllium", LXString "Be", LXString "4", LXString "9.012" ]
+                                    ]
                                 )
                             )
                 in
-                    Expect.equal parsedInput expectedOutput
+                Expect.equal parsedInput expectedOutput
         , test "(T.3a) table" <|
             \_ ->
                 let
@@ -236,17 +224,76 @@ Beryllium & Be & 4 & 9.012 \\\\
                         Ok
                             (Environment "tabular"
                                 (LatexList
-                                    ([ LatexList
-                                        ([ LXString "Hydrogen", LXString "H", LXString "1", LXString "1.008" ])
-                                     , LatexList ([ LXString "Helium", LXString "He", LXString "2", LXString "4.003" ])
-                                     , LatexList ([ LXString "Lithium", LXString "Li", LXString "3", LXString "6.94" ])
-                                     , LatexList ([ LXString "Beryllium", LXString "Be", LXString "4", LXString "9.012" ])
-                                     ]
-                                    )
+                                    [ LatexList
+                                        [ LXString "Hydrogen", LXString "H", LXString "1", LXString "1.008" ]
+                                    , LatexList [ LXString "Helium", LXString "He", LXString "2", LXString "4.003" ]
+                                    , LatexList [ LXString "Lithium", LXString "Li", LXString "3", LXString "6.94" ]
+                                    , LatexList [ LXString "Beryllium", LXString "Be", LXString "4", LXString "9.012" ]
+                                    ]
                                 )
                             )
                 in
-                    Expect.equal parsedInput expectedOutput
+                Expect.equal parsedInput expectedOutput
+        , test "(T.4) table with inline math" <|
+            \_ ->
+                let
+                    input =
+                        """\\begin{tabular}
+$ \\int x^n dx $ & $ \\frac{x^{n+1}}{n+1} $ \\\\
+$ \\int e^x dx $ & $ e^x $ \\\\
+\\end{tabular}
+"""
+
+                    parsedInput =
+                        run parse input
+
+                    expectedOutput =
+                        Ok
+                            (Environment "tabular"
+                                (LatexList
+                                    [ LatexList
+                                        [ InlineMath " \\int x^n dx "
+                                        , InlineMath " \\frac{x^{n+1}}{n+1} "
+                                        ]
+                                    , LatexList
+                                        [ InlineMath " \\int e^x dx "
+                                        , InlineMath " e^x "
+                                        ]
+                                    ]
+                                )
+                            )
+                in
+                Expect.equal parsedInput expectedOutput
+        , test "(T.5) table with display math" <|
+            \_ ->
+                let
+                    input =
+                        """\\begin{tabular}
+$$ \\int x^n dx $$ & $$ \\frac{x^{n+1}}{n+1} $$ \\\\
+$$ \\int e^x dx $$ & $$ e^x $$ \\\\
+\\end{tabular}
+"""
+
+                    parsedInput =
+                        run parse input
+
+                    expectedOutput =
+                        Ok
+                            (Environment "tabular"
+                                (LatexList
+                                    [ LatexList
+                                        [ InlineMath " \\int x^n dx "
+                                        , InlineMath " \\frac{x^{n+1}}{n+1} "
+                                        ]
+                                    , LatexList
+                                        [ InlineMath " \\int e^x dx "
+                                        , InlineMath " e^x "
+                                        ]
+                                    ]
+                                )
+                            )
+                in
+                Expect.equal parsedInput expectedOutput
         , test "(L.1) label" <|
             \_ ->
                 let
@@ -256,7 +303,7 @@ Beryllium & Be & 4 & 9.012 \\\\
                     expectedOutput =
                         Ok (Environment "equation" (LXString "\n\\label{uncertaintyPrinciple}\n\\left[ \\hat p, x\\right] = -i \\hbar\n"))
                 in
-                    Expect.equal parsedInput expectedOutput
+                Expect.equal parsedInput expectedOutput
         , test "(P.1) punctuation" <|
             \_ ->
                 let
@@ -264,7 +311,27 @@ Beryllium & Be & 4 & 9.012 \\\\
                         run latexList "test \\code{foo}."
 
                     expectedOutput =
-                        Ok (LatexList ([ LXString "test", Macro "code" ([ LatexList ([ LXString "foo" ]) ]), LXString "." ]))
+                        Ok (LatexList [ LXString "test", Macro "code" [ LatexList [ LXString "foo" ] ], LXString "." ])
                 in
-                    Expect.equal parsedInput expectedOutput
+                Expect.equal parsedInput expectedOutput
+        , test "(V.1) verse" <|
+            \_ ->
+                let
+                    parsedInput =
+                        run latexList "\\begin{verse}\nTest\n\nTest\n\\end{verse}"
+
+                    expectedOutput =
+                        Ok (LatexList [ LXString "test", Macro "code" [ LatexList [ LXString "foo" ] ], LXString "." ])
+                in
+                Expect.equal parsedInput expectedOutput
+        , test "(VB.1) verbatim" <|
+            \_ ->
+                let
+                    parsedInput =
+                        run latexList "\\begin{verbatim}\nTest\n\nTest\n\\end{verbatim}"
+
+                    expectedOutput =
+                        Ok (LatexList [ LXString "test", Macro "code" [ LatexList [ LXString "foo" ] ], LXString "." ])
+                in
+                Expect.equal parsedInput expectedOutput
         ]

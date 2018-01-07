@@ -1,8 +1,8 @@
 module MiniLatex.Parser exposing (..)
 
-import Parser exposing (..)
 import Dict
 import List.Extra
+import Parser exposing (..)
 
 
 {- ELLIE: https://ellie-app.com/pcB5b3BPfa1/0
@@ -27,7 +27,7 @@ type LatexExpression
 
 defaultLatexList : LatexExpression
 defaultLatexList =
-    LatexList ([ LXString "Parse Error" ])
+    LatexList [ LXString "Parse Error" ]
 
 
 defaultLatexExpression : List LatexExpression
@@ -45,8 +45,11 @@ parseParagraph text =
             Ok (LatexList list) ->
                 list
 
+            Err error ->
+                [ LXString ("<strong>Error:</strong> " ++ "<pre class=\"errormessage\">" ++ (toString error.problem) ++ " </pre><strong>in </strong> </span><pre class=\"errormessage\">" ++ error.source ++ "</pre>") ]
+
             _ ->
-                []
+                [ LXString "yada!" ]
 
 
 
@@ -56,9 +59,11 @@ parseParagraph text =
 
 latexList : Parser LatexExpression
 latexList =
-    succeed identity
-        |= repeat oneOrMore parse
-        |> map LatexList
+    inContext "latexList" <|
+        (succeed identity
+            |= repeat oneOrMore parse
+            |> map LatexList
+        )
 
 
 parse : Parser LatexExpression
@@ -90,9 +95,11 @@ ws =
 
 parseUntil : String -> Parser String
 parseUntil marker =
-    ignoreUntil marker
-        |> source
-        |> map (String.dropRight <| String.length marker)
+    inContext "parseUntil" <|
+        (ignoreUntil marker
+            |> source
+            |> map (String.dropRight <| String.length marker)
+        )
 
 
 
@@ -152,10 +159,12 @@ words2 =
 
 texComment : Parser LatexExpression
 texComment =
-    symbol "%"
-        |. ignoreUntil "\n"
-        |> source
-        |> map Comment
+    inContext "texComment" <|
+        (symbol "%"
+            |. ignoreUntil "\n"
+            |> source
+            |> map Comment
+        )
 
 
 
@@ -164,26 +173,16 @@ texComment =
 
 item : Parser LatexExpression
 item =
-    succeed identity
-        |. ws
-        |. keyword "\\item"
-        |. spaces
-        |= repeat zeroOrMore (oneOf [ words2, inlineMath2, macro2 ])
-        |. symbol "\n"
-        |. spaces
-        |> map (\x -> Item 1 (LatexList x))
-
-
-itemitem : Parser LatexExpression
-itemitem =
-    succeed identity
-        |. ws
-        |. keyword "\\itemitem"
-        |. spaces
-        |= repeat zeroOrMore (oneOf [ words2, inlineMath2, macro2 ])
-        |. symbol "\n"
-        |. spaces
-        |> map (\x -> Item 2 (LatexList x))
+    inContext "item" <|
+        (succeed identity
+            |. ws
+            |. keyword "\\item"
+            |. spaces
+            |= repeat zeroOrMore (oneOf [ words2, inlineMath2, macro2 ])
+            |. symbol "\n"
+            |. spaces
+            |> map (\x -> Item 1 (LatexList x))
+        )
 
 
 
@@ -212,16 +211,17 @@ inlineMath2 =
 
 displayMathDollar : Parser LatexExpression
 displayMathDollar =
-    inContext "display math" <|
+    inContext "display math $$" <|
         succeed DisplayMath
+            |. spaces
             |. symbol "$$"
             |= parseUntil "$$"
-            |. ws
+            |. spaces
 
 
 displayMathBrackets : Parser LatexExpression
 displayMathBrackets =
-    inContext "display math" <|
+    inContext "display math brackets" <|
         succeed DisplayMath
             |. ignore zeroOrMore ((==) ' ')
             |. symbol "\\["
@@ -248,7 +248,7 @@ macro =
 -}
 macro2 : Parser LatexExpression
 macro2 =
-    inContext "macro" <|
+    inContext "macro2" <|
         succeed Macro
             |= macroName
             |= repeat zeroOrMore arg
@@ -259,24 +259,28 @@ macro2 =
 -}
 arg : Parser LatexExpression
 arg =
-    succeed identity
-        |. keyword "{"
-        |= repeat zeroOrMore (oneOf [ words2, inlineMath2, (lazy (\_ -> macro)) ])
-        |. symbol "}"
-        |> map LatexList
+    inContext "arg" <|
+        (succeed identity
+            |. keyword "{"
+            |= repeat zeroOrMore (oneOf [ words2, inlineMath2, lazy (\_ -> macro) ])
+            |. symbol "}"
+            |> map LatexList
+        )
 
 
 macroName : Parser String
 macroName =
-    allOrNothing <|
-        succeed identity
-            |. mustFail reservedWord
-            |= innerMacroName
+    inContext "macroName" <|
+        (allOrNothing <|
+            succeed identity
+                |. mustFail reservedWord
+                |= innerMacroName
+        )
 
 
 innerMacroName : Parser String
 innerMacroName =
-    inContext "macroName" <|
+    inContext "innerMacroName" <|
         succeed identity
             |. spaces
             |. symbol "\\"
@@ -285,30 +289,35 @@ innerMacroName =
 
 allOrNothing : Parser a -> Parser a
 allOrNothing parser =
-    delayedCommitMap always parser (succeed ())
+    inContext "allOrNothing" <|
+        (delayedCommitMap always parser (succeed ()))
 
 
 mustFail : Parser a -> Parser ()
 mustFail parser =
-    oneOf
-        [ delayedCommitMap always parser (succeed ()) |> map (always <| Err "I didn't fail")
-        , succeed (Ok ())
-        ]
-        |> andThen
-            (\res ->
-                case res of
-                    Err e ->
-                        fail e
+    inContext "mustFail" <|
+        (oneOf
+            [ delayedCommitMap always parser (succeed ()) |> map (always <| Err "I didn't fail")
+            , succeed (Ok ())
+            ]
+            |> andThen
+                (\res ->
+                    case res of
+                        Err e ->
+                            fail e
 
-                    Ok _ ->
-                        succeed ()
-            )
+                        Ok _ ->
+                            succeed ()
+                )
+        )
 
 
 reservedWord : Parser ()
 reservedWord =
-    succeed identity
-        |= oneOf [ symbol "\\begin", keyword "\\end", keyword "\\item" ]
+    inContext "reservedWord" <|
+        (succeed identity
+            |= oneOf [ symbol "\\begin", keyword "\\end", keyword "\\item" ]
+        )
 
 
 
@@ -318,7 +327,8 @@ reservedWord =
 
 environment : Parser LatexExpression
 environment =
-    lazy (\_ -> beginWord |> andThen environmentOfType)
+    inContext "environment" <|
+        (lazy (\_ -> beginWord |> andThen environmentOfType))
 
 
 parseEnvirnomentDict =
@@ -341,17 +351,19 @@ environmentParser name =
 
 environmentOfType : String -> Parser LatexExpression
 environmentOfType envType =
-    let
-        endWord =
-            "\\end{" ++ envType ++ "}"
+    inContext "environmentOfType" <|
+        (let
+            endWord =
+                "\\end{" ++ envType ++ "}"
 
-        envKind =
-            if List.member envType [ "equation", "align", "eqnarray", "verbatim" ] then
-                "mathJax"
-            else
-                envType
-    in
-        (environmentParser envKind) endWord envType
+            envKind =
+                if List.member envType [ "equation", "align", "eqnarray", "verbatim", "verse" ] then
+                    "mathJax"
+                else
+                    envType
+         in
+            environmentParser envKind endWord envType
+        )
 
 
 
@@ -359,35 +371,41 @@ environmentOfType envType =
 
 
 standardEnvironmentBody endWord envType =
-    succeed identity
-        |. ws
-        |= repeat zeroOrMore parse
-        |. ws
-        |. symbol endWord
-        |. ws
-        |> map LatexList
-        |> map (Environment envType)
+    inContext "standardEnvironmentBody" <|
+        (succeed identity
+            |. ws
+            |= repeat zeroOrMore parse
+            |. ws
+            |. symbol endWord
+            |. ws
+            |> map LatexList
+            |> map (Environment envType)
+        )
 
 
 itemEnvironmentBody endWord envType =
-    succeed identity
-        |. ws
-        |= repeat zeroOrMore (oneOf [ itemitem, item, texComment ])
-        |. ws
-        |. symbol endWord
-        |. ws
-        |> map LatexList
-        |> map (Environment envType)
+    inContext "itemEnvironmentBody" <|
+        (succeed identity
+            |. ws
+            |= repeat zeroOrMore (oneOf [ item, texComment ])
+            |. ws
+            |. symbol endWord
+            |. ws
+            |> map LatexList
+            |> map (Environment envType)
+        )
 
 
 tabularEnvironmentBody endWord envType =
-    succeed identity
-        |. ws
-        |= tableBody
-        |. ws
-        |. symbol endWord
-        |. ws
-        |> map (Environment envType)
+    inContext "tabularEnvironmentBody" <|
+        (succeed identity
+            |. ws
+            |= tableBody
+            |. ws
+            |. symbol endWord
+            |. ws
+            |> map (Environment envType)
+        )
 
 
 {-| The body of the environment is parsed as an LXString.
@@ -396,11 +414,13 @@ passed to MathJax for processing and also for the verbatim
 environment.
 -}
 mathJaxBody endWord envType =
-    succeed identity
-        |= parseUntil endWord
-        |. ws
-        |> map LXString
-        |> map (Environment envType)
+    inContext "mathJaxBody" <|
+        (succeed identity
+            |= parseUntil endWord
+            |. ws
+            |> map LXString
+            |> map (Environment envType)
+        )
 
 
 
@@ -409,46 +429,56 @@ mathJaxBody endWord envType =
 
 tableCell : Parser LatexExpression
 tableCell =
-    succeed identity
-        |. spaces
-        |= oneOf [ inlineMath2, words2 ]
+    inContext "tableCell" <|
+        (succeed identity
+            |. spaces
+            |= oneOf [ inlineMath2, words2 ]
+        )
 
 
 tableRow : Parser LatexExpression
 tableRow =
-    succeed identity
-        |. spaces
-        |= andThen (\c -> tableCellHelp [ c ]) tableCell
-        |. spaces
-        |. oneOf [ symbol "\n", symbol "\\\\\n" ]
-        |> map LatexList
+    inContext "tableRow" <|
+        (succeed identity
+            |. spaces
+            |= andThen (\c -> tableCellHelp [ c ]) tableCell
+            |. spaces
+            |. oneOf [ symbol "\n", symbol "\\\\\n" ]
+            |> map LatexList
+        )
 
 
 tableCellHelp : List LatexExpression -> Parser (List LatexExpression)
 tableCellHelp revCells =
-    oneOf
-        [ nextCell
-            |> andThen (\c -> tableCellHelp (c :: revCells))
-        , succeed (List.reverse revCells)
-        ]
+    inContext "tableCellHelp" <|
+        (oneOf
+            [ nextCell
+                |> andThen (\c -> tableCellHelp (c :: revCells))
+            , succeed (List.reverse revCells)
+            ]
+        )
 
 
 nextCell : Parser LatexExpression
 nextCell =
-    delayedCommit spaces <|
-        succeed identity
-            |. symbol "&"
-            |. spaces
-            |= tableCell
+    inContext "nextCell" <|
+        (delayedCommit spaces <|
+            succeed identity
+                |. symbol "&"
+                |. spaces
+                |= tableCell
+        )
 
 
 tableBody : Parser LatexExpression
 tableBody =
-    succeed identity
-        |. repeat zeroOrMore arg
-        |. ws
-        |= repeat oneOrMore tableRow
-        |> map LatexList
+    inContext "tableBody" <|
+        (succeed identity
+            |. repeat zeroOrMore arg
+            |. ws
+            |= repeat oneOrMore tableRow
+            |> map LatexList
+        )
 
 
 
@@ -457,7 +487,19 @@ tableBody =
 
 beginWord : Parser String
 beginWord =
-    succeed identity
-        |. ignore zeroOrMore ((==) ' ')
-        |. symbol "\\begin{"
-        |= parseUntil "}"
+    inContext "beginWord" <|
+        (succeed identity
+            |. ignore zeroOrMore ((==) ' ')
+            |. symbol "\\begin{"
+            |= parseUntil "}"
+        )
+
+
+endWord : Parser String
+endWord =
+    inContext "endWord" <|
+        (succeed identity
+            |. ignore zeroOrMore ((==) ' ')
+            |. symbol "\\end{"
+            |= parseUntil "}"
+        )

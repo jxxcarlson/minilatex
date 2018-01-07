@@ -51,8 +51,8 @@ renderString parser latexState str =
                 Ok latexExpression ->
                     render latexState latexExpression
 
-                Err _ ->
-                    "PARSE ERROR"
+                Err error ->
+                    "Error: " ++ (toString error)
     in
         renderOutput
 
@@ -86,7 +86,7 @@ render latexState latexExpression =
             renderItem latexState level latexExpression
 
         InlineMath str ->
-            " $" ++ str ++ "$ "
+            "$" ++ str ++ "$"
 
         DisplayMath str ->
             "$$" ++ str ++ "$$"
@@ -98,36 +98,72 @@ render latexState latexExpression =
             renderLatexList latexState args
 
         LXString str ->
-            xRenderString str
-
-
-xRenderString str =
-    str
-
-
-spaceify str =
-    let
-        lastChar =
-            String.right 1 str
-
-        firstChar =
-            String.left 1 str
-    in
-        if List.member str [ ".", ",", "?", "!", ";", ":" ] then
             str
-        else if List.member firstChar [ ".", ",", "?", "!", ";", ":" ] then
-            str
-        else
-            " " ++ str
-
-
-
-{- RENDER ELEMENTS -}
 
 
 renderLatexList : LatexState -> List LatexExpression -> String
 renderLatexList latexState args =
-    args |> List.map (render latexState) |> List.map spaceify |> String.join ("")
+    -- args |> List.map (render latexState) |> List.map spaceify |> String.join ("")
+    args |> List.map (render latexState) |> joinList
+
+
+type JoinType
+    = Space
+    | NoSpace
+
+
+lastChar =
+    String.right 1
+
+
+firstChar =
+    String.left 1
+
+
+joinType : String -> String -> JoinType
+joinType l r =
+    let
+        lastCharLeft =
+            lastChar l
+
+        firstCharRight =
+            firstChar r
+    in
+        if l == "" then
+            NoSpace
+        else if List.member lastCharLeft [ "(" ] then
+            NoSpace
+        else if List.member firstCharRight [ ")", ".", ",", "?", "!", ";", ":" ] then
+            NoSpace
+        else
+            Space
+
+
+joinList : List String -> String
+joinList stringList =
+    let
+        start =
+            List.head stringList |> Maybe.withDefault ""
+    in
+        List.foldl joinDatum2String ( "", "" ) stringList |> Tuple.first
+
+
+joinDatum2String : String -> ( String, String ) -> ( String, String )
+joinDatum2String current datum =
+    let
+        ( acc, previous ) =
+            datum
+    in
+        case joinType previous current of
+            NoSpace ->
+                ( acc ++ current, current )
+
+            Space ->
+                ( acc ++ " " ++ current, current )
+
+
+
+{- End new code -}
 
 
 renderArgList : LatexState -> List LatexExpression -> String
@@ -159,13 +195,17 @@ renderEnvironmentDict =
     Dict.fromList
         [ ( "align", \x y -> renderAlignEnvironment x y )
         , ( "center", \x y -> renderCenterEnvironment x y )
+        , ( "comment", \x y -> renderCommentEnvironment x y )
+        , ( "indent", \x y -> renderIndentEnvironment x y )
         , ( "enumerate", \x y -> renderEnumerate x y )
         , ( "eqnarray", \x y -> renderEqnArray x y )
         , ( "equation", \x y -> renderEquationEnvironment x y )
         , ( "itemize", \x y -> renderItemize x y )
         , ( "macros", \x y -> renderMacros x y )
+        , ( "quotation", \x y -> renderQuotation x y )
         , ( "tabular", \x y -> renderTabular x y )
         , ( "verbatim", \x y -> renderVerbatim x y )
+        , ( "verse", \x y -> renderVerse x y )
         ]
 
 
@@ -190,6 +230,12 @@ renderDefaultEnvironment name latexState body =
         renderTheoremLikeEnvironment latexState name body
     else
         renderDefaultEnvironment2 latexState name body
+
+
+renderIndentEnvironment : LatexState -> LatexExpression -> String
+renderIndentEnvironment latexState body =
+    -- div [ "style=\"margin-left:2em\"" ] [ (render latexState body) ]
+    div [ "style=\"margin-left:2em\"" ] [ render latexState body ]
 
 
 renderTheoremLikeEnvironment : LatexState -> String -> LatexExpression -> String
@@ -231,6 +277,10 @@ renderCenterEnvironment latexState body =
             render latexState body
     in
         "\n<div class=\"center\" >\n" ++ r ++ "\n</div>\n"
+
+
+renderCommentEnvironment latexState body =
+    ""
 
 
 renderEquationEnvironment latexState body =
@@ -295,6 +345,14 @@ renderMacros latexState body =
     "\n$$\n" ++ (render latexState body) ++ "\n$$\n"
 
 
+renderQuotation latexState body =
+    div [ "class=\"quotation\"" ] [ render latexState body ]
+
+
+renderVerse latexState body =
+    div [ "class=\"verse\"" ] [ String.trim <| render latexState body ]
+
+
 renderTabular latexState body =
     renderTableBody body
 
@@ -345,14 +403,17 @@ renderMacroDict : Dict.Dict String (LatexState -> List LatexExpression -> String
 renderMacroDict =
     Dict.fromList
         [ ( "bozo", \x y -> renderBozo x y )
+        , ( "bigskip", \x y -> renderBigSkip x y )
         , ( "cite", \x y -> renderCite x y )
         , ( "code", \x y -> renderCode x y )
+        , ( "comment", \x y -> renderInlineComment x y )
         , ( "ellie", \x y -> renderEllie x y )
         , ( "emph", \x y -> renderItalic x y )
         , ( "eqref", \x y -> renderEqRef x y )
         , ( "href", \x y -> renderHRef x y )
         , ( "iframe", \x y -> renderIFrame x y )
         , ( "image", \x y -> renderImage x y )
+        , ( "imageref", \x y -> renderImageRef x y )
         , ( "index", \x y -> "" )
         , ( "italic", \x y -> renderItalic x y )
         , ( "label", \x y -> "" )
@@ -364,6 +425,7 @@ renderMacroDict =
         , ( "section", \x y -> renderSection x y )
         , ( "section*", \x y -> renderSectionStar x y )
         , ( "setcounter", \x y -> "" )
+        , ( "smallskip", \x y -> renderSmallSkip x y )
         , ( "strong", \x y -> renderStrong x y )
         , ( "subheading", \x y -> renderSubheading x y )
         , ( "subsection", \x y -> renderSubsection x y )
@@ -411,6 +473,16 @@ renderBozo latexState args =
     "bozo{" ++ (renderArg 0 latexState args) ++ "}{" ++ (renderArg 1 latexState args) ++ "}"
 
 
+renderBigSkip : LatexState -> List LatexExpression -> String
+renderBigSkip latexState args =
+    div [] [ "<br><br>" ]
+
+
+renderSmallSkip : LatexState -> List LatexExpression -> String
+renderSmallSkip latexState args =
+    div [] [ "<br>" ]
+
+
 {-| Needs work
 -}
 renderCite : LatexState -> List LatexExpression -> String
@@ -421,6 +493,11 @@ renderCite latexState args =
 renderCode : LatexState -> List LatexExpression -> String
 renderCode latexState args =
     " <span class=\"code\">" ++ (renderArg 0 latexState args) ++ "</span>"
+
+
+renderInlineComment : LatexState -> List LatexExpression -> String
+renderInlineComment latexState args =
+    ""
 
 
 renderEllie : LatexState -> List LatexExpression -> String
@@ -474,7 +551,7 @@ renderHRef latexState args =
         label =
             renderArg 1 emptyLatexState args
     in
-        " <a href=\"" ++ url ++ "\" target=_blank>" ++ label ++ "</a>"
+        "<a href=\"" ++ url ++ "\" target=_blank>" ++ label ++ "</a>"
 
 
 renderIFrame : LatexState -> List LatexExpression -> String
@@ -529,13 +606,42 @@ renderImage latexState args =
             parseImageAttributes attributeString
     in
         if imageAttrs.float == "left" then
-            handleFloatedImageLeft url label imageAttrs
+            div [ imageFloatLeftStyle imageAttrs ] [ img url imageAttrs, "<br>", label ]
         else if imageAttrs.float == "right" then
-            handleFloatedImageRight url label imageAttrs
+            div [ imageFloatRightStyle imageAttrs ] [ img url imageAttrs, "<br>", label ]
         else if imageAttrs.align == "center" then
-            handleCenterImage url label imageAttrs
+            div [ imageCenterStyle imageAttrs ] [ img url imageAttrs, "<br>", label ]
         else
             "<image src=\"" ++ url ++ "\" " ++ (imageAttributes imageAttrs attributeString) ++ " >"
+
+
+renderImageRef : LatexState -> List LatexExpression -> String
+renderImageRef latexState args =
+    let
+        url =
+            renderArg 0 latexState args
+
+        imageUrl =
+            renderArg 1 latexState args
+
+        attributeString =
+            renderArg 2 latexState args
+
+        imageAttrs =
+            parseImageAttributes attributeString
+    in
+        if imageAttrs.float == "left" then
+            a url (div [ imageFloatLeftStyle imageAttrs ] [ img imageUrl imageAttrs ])
+        else if imageAttrs.float == "right" then
+            a url (div [ imageFloatRightStyle imageAttrs ] [ img imageUrl imageAttrs ])
+        else if imageAttrs.align == "center" then
+            a url (div [ imageCenterStyle imageAttrs ] [ img imageUrl imageAttrs ])
+        else
+            a url (div [ imageCenterStyle imageAttrs ] [ img imageUrl imageAttrs ])
+
+
+a url label =
+    "<a href=\"" ++ url ++ "\"  target=\"_blank\" >\n" ++ label ++ "\n</a>"
 
 
 renderItalic : LatexState -> List LatexExpression -> String
@@ -706,15 +812,40 @@ renderXLinkPublic latexState args =
 {- IMAGE HELPERS -}
 
 
+imageCenterStyle imageAttributes =
+    "class=\"center\" style=\"width: " ++ (toString (imageAttributes.width + 20)) ++ "px; margin-left:auto, margin-right:auto; text-align: center;\""
+
+
+imageFloatRightStyle imageAttributes =
+    "style=\"float: right; width: " ++ (toString (imageAttributes.width + 20)) ++ "px; margin: 0 0 7.5px 10px; text-align: center;\""
+
+
+imageFloatLeftStyle imageAttributes =
+    "style=\"float: left; width: " ++ (toString (imageAttributes.width + 20)) ++ "px; margin: 0 10px 7.5px 0; text-align: center;\""
+
+
+div : List String -> List String -> String
+div attributes children =
+    let
+        attributeString =
+            attributes |> String.join " "
+
+        childrenString =
+            children |> String.join "\n"
+    in
+        "<div " ++ attributeString ++ " >\n" ++ childrenString ++ "\n</div>"
+
+
+img url imageAttributs =
+    "<img src=\"" ++ url ++ "\" width=" ++ (toString imageAttributs.width) ++ " >"
+
+
 handleCenterImage url label imageAttributes =
     let
         width =
             imageAttributes.width
-
-        imageCenterLeftPart width =
-            "<div class=\"center\" style=\"width: " ++ (toString (width + 20)) ++ "px; margin-left:auto, margin-right:auto; text-align: center;\">"
     in
-        (imageCenterLeftPart width) ++ "<img src=\"" ++ url ++ "\" width=" ++ (toString width) ++ " ><br>" ++ label ++ "</div>"
+        div [ imageCenterStyle imageAttributes ] [ img url imageAttributes, "<br>", label ]
 
 
 handleFloatedImageRight url label imageAttributes =
