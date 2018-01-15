@@ -2,10 +2,10 @@ module MiniLatex.Driver
     exposing
         ( emptyEditRecord
         , getRenderedText
+        , parse
         , render
         , setup
         , update
-        , parse
         )
 
 {-| This library exposes functions for rendering MiniLaTeX text into HTML.
@@ -20,6 +20,7 @@ module MiniLatex.Driver
 import MiniLatex.Differ as Differ exposing (EditRecord)
 import MiniLatex.LatexDiffer as MiniLatexDiffer
 import MiniLatex.LatexState exposing (emptyLatexState)
+import MiniLatex.Paragraph as Paragraph
 import MiniLatex.Parser as MiniLatexParser exposing (LatexExpression)
 
 
@@ -48,33 +49,20 @@ then `render macros source` yields the HTML text
 -}
 render : String -> String -> String
 render macroDefinitions text =
-    MiniLatexDiffer.initialize2 emptyLatexState text |> getRenderedText macroDefinitions
+    MiniLatexDiffer.initialize emptyLatexState text |> getRenderedText macroDefinitions
 
 
 parse : String -> List (List LatexExpression)
 parse text =
     text
         |> MiniLatexDiffer.prepareContentForLatex
-        |> Differ.logicalParagraphify
-        |> List.map MiniLatexParser.parseParagraph
+        |> Paragraph.logicalParagraphify
+        |> List.map MiniLatexParser.parse
 
 
 pTags : EditRecord -> List String
 pTags editRecord =
-    let
-        prefix =
-            List.repeat editRecord.idListStart "<p>"
-
-        n =
-            List.length editRecord.paragraphs - (editRecord.idListStart + List.length editRecord.idList)
-
-        suffix =
-            List.repeat n "<p>"
-
-        infix =
-            editRecord.idList |> List.map (\x -> "<p id=\"" ++ x ++ "\">")
-    in
-        prefix ++ infix ++ suffix
+    editRecord.idList |> List.map (\x -> "<p id=\"" ++ x ++ "\">")
 
 
 {-| Using the renderedParagraph list of the editRecord,
@@ -82,32 +70,36 @@ return a string representing the HTML of the paragraph list
 of the editRecord. Append the macroDefinitions for use
 by MathJax.
 -}
-getRenderedText2 : String -> EditRecord -> String
-getRenderedText2 macroDefinitions editRecord =
-    let
-        paragraphs =
-            editRecord.renderedParagraphs
-
-        pTagList =
-            pTags editRecord
-    in
-        List.map2 (\para pTag -> pTag ++ "\n" ++ para ++ "\n</p>") paragraphs pTagList
-            |> String.join "\n\n"
-            |> (\x -> x ++ "\n\n" ++ macroDefinitions)
-
-
-{-| This version of getRenderedText ignores the idList.
-This give better mathJax performance.
--}
 getRenderedText : String -> EditRecord -> String
 getRenderedText macroDefinitions editRecord =
     let
         paragraphs =
             editRecord.renderedParagraphs
+
+        _ =
+            Debug.log "idList" editRecord.idList
+
+        pTagList =
+            Debug.log "pTags"
+                (pTags editRecord)
     in
-        List.map (\para -> "<p>\n" ++ para ++ "\n</p>") paragraphs
-            |> String.join "\n\n"
-            |> (\x -> macroDefinitions ++ "\n\n" ++ x)
+    List.map2 (\para pTag -> pTag ++ "\n" ++ para ++ "\n</p>") paragraphs pTagList
+        |> String.join "\n\n"
+        |> (\x -> x ++ "\n\n" ++ macroDefinitions)
+
+
+{-| This version of getRenderedText ignores the idList.
+This give better mathJax performance. ??? NEED TO TEST THIS ASSERTION
+-}
+getRenderedText2 : String -> EditRecord -> String
+getRenderedText2 macroDefinitions editRecord =
+    let
+        paragraphs =
+            editRecord.renderedParagraphs
+    in
+    List.map (\para -> "<p>\n" ++ para ++ "\n</p>") paragraphs
+        |> String.join "\n\n"
+        |> (\x -> macroDefinitions ++ "\n\n" ++ x)
 
 
 {-| Create an EditRecord from a string of MiniLaTeX text:

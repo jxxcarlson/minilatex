@@ -1,5 +1,7 @@
 module MiniLatex.ParserTools exposing (..)
 
+{- Some of these functoins are used by MiniLatex.Accumulator -}
+
 import MiniLatex.Parser exposing (LatexExpression(..))
 
 
@@ -15,7 +17,7 @@ isMacro macroName latexExpression =
 
 
 getMacroArgs macroName latexExpression =
-    case (latexExpression) of
+    case latexExpression of
         Macro name args ->
             if name == macroName then
                 args
@@ -36,12 +38,12 @@ getFirstMacroArg macroName latexExpression =
         arg =
             getSimpleMacroArgs macroName latexExpression |> List.head
     in
-        case arg of
-            Just value ->
-                value
+    case arg of
+        Just value ->
+            value
 
-            _ ->
-                ""
+        _ ->
+            ""
 
 
 list2LeadingString list =
@@ -57,12 +59,12 @@ list2LeadingString list =
                 Nothing ->
                     LXString ""
     in
-        case value of
-            LXString str ->
-                str
+    case value of
+        LXString str ->
+            str
 
-            _ ->
-                ""
+        _ ->
+            ""
 
 
 latexList2List latexExpression =

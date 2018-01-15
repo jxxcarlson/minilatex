@@ -1,26 +1,20 @@
-module MiniLatex.LatexDiffer exposing (initialize, initialize2, safeUpdate, prepareContentForLatex)
+module MiniLatex.LatexDiffer exposing (initialize, prepareContentForLatex, safeUpdate)
 
 import MiniLatex.Accumulator as Accumulator
 import MiniLatex.Differ as Differ exposing (EditRecord)
 import MiniLatex.LatexState exposing (LatexState, emptyLatexState)
+import MiniLatex.Paragraph as Paragraph
 import MiniLatex.Render as Render exposing (render, renderLatexList)
 import String.Extra
 
 
-initialize : String -> EditRecord
-initialize text =
-    text
-        |> prepareContentForLatex
-        |> Differ.initialize (Render.transformText emptyLatexState)
-
-
-initialize2 : LatexState -> String -> EditRecord
-initialize2 latexState text =
+initialize : LatexState -> String -> EditRecord
+initialize latexState text =
     let
         paragraphs =
             text
                 |> prepareContentForLatex
-                |> Differ.logicalParagraphify
+                |> Paragraph.logicalParagraphify
 
         ( latexExpressionList, latexState1 ) =
             paragraphs
@@ -36,28 +30,14 @@ initialize2 latexState text =
         renderedParagraphs2 =
             renderedParagraphs
 
-        --|> List.map (\x -> "\n<p>\n" ++ x ++ "</p>")
+        n =
+            List.length paragraphs
+
+        idList =
+            Debug.log "idList in initialize"
+                (List.range 1 n |> List.map (Differ.prefixer 0))
     in
-        EditRecord paragraphs renderedParagraphs2 latexState2 [] 0
-
-
-
--- initialize2a : LatexState -> String -> EditRecord
--- initialize2a latexState text =
---     let
---         paragraphs =
---             text
---                 |> prepareContentForLatex
---                 |> Differ.paragraphify
---
---         ( latexExpressionList, latexState ) =
---             paragraphs
---                 |> Accumulator.parseParagraphs emptyLatexState
---
---         renderedParagraphs =
---             latexExpressionList |> List.map (renderLatexList latexState)
---     in
---         EditRecord paragraphs renderedParagraphs latexState
+    EditRecord paragraphs renderedParagraphs2 latexState2 idList Nothing Nothing
 
 
 update : Int -> EditRecord -> String -> EditRecord
@@ -70,7 +50,7 @@ update seed editorRecord text =
 safeUpdate : Int -> EditRecord -> String -> EditRecord
 safeUpdate seed editRecord content =
     if Differ.isEmpty editRecord then
-        initialize2 emptyLatexState content
+        initialize emptyLatexState content
     else
         update seed editRecord content
 
