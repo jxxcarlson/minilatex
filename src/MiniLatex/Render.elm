@@ -1,6 +1,7 @@
 module MiniLatex.Render
     exposing
-        ( makeTableOfContents
+        ( compress
+        , makeTableOfContents
         , render
         , renderLatexList
         , renderString
@@ -22,6 +23,7 @@ import MiniLatex.LatexState
         )
 import MiniLatex.Parser exposing (LatexExpression(..), defaultLatexList, latexList)
 import Parser
+import Regex
 import String.Extra
 
 
@@ -737,27 +739,58 @@ renderRef latexState args =
     getCrossReference key latexState
 
 
+compress : String -> String
+compress str =
+    str
+        |> String.toLower
+        |> String.Extra.replace " " ":"
+        |> Regex.replace Regex.All (Regex.regex "[,;.!?&_]") (\_ -> "")
+
+
+makeId : String -> String -> String
+makeId prefix name =
+    String.join ":" [ prefix, compress name ]
+
+
+idPhrase : String -> String -> String
+idPhrase prefix name =
+    let
+        compressedName =
+            name |> String.toLower |> String.Extra.replace " " ":"
+    in
+    String.join "" [ "id=\"", makeId prefix name, "\"" ]
+
+
+tag : String -> String -> String -> String
+tag tagName tagProperties content =
+    String.join "" [ "<", tagName, " ", tagProperties, " ", ">", content, "</", tagName, ">" ]
+
+
 renderSection : LatexState -> List LatexExpression -> String
 renderSection latexState args =
     let
-        arg =
+        sectionName =
             renderArg 0 latexState args
 
         s1 =
             getCounter "s1" latexState
 
-        addendum =
+        label =
             if s1 > 0 then
                 toString s1 ++ " "
             else
                 ""
     in
-    "<h2>" ++ addendum ++ arg ++ "</h2>"
+    tag "h2" (idPhrase "section" sectionName) (label ++ sectionName)
 
 
 renderSectionStar : LatexState -> List LatexExpression -> String
 renderSectionStar latexState args =
-    "<h2>" ++ renderArg 0 latexState args ++ "</h2>"
+    let
+        sectionName =
+            renderArg 0 latexState args
+    in
+    tag "h2" (idPhrase "section" sectionName) sectionName
 
 
 renderStrong : LatexState -> List LatexExpression -> String
@@ -773,7 +806,7 @@ renderSubheading latexState args =
 renderSubsection : LatexState -> List LatexExpression -> String
 renderSubsection latexState args =
     let
-        arg =
+        sectionName =
             renderArg 0 latexState args
 
         s1 =
@@ -782,28 +815,28 @@ renderSubsection latexState args =
         s2 =
             getCounter "s2" latexState
 
-        addendum =
+        label =
             if s1 > 0 then
                 toString s1 ++ "." ++ toString s2 ++ " "
             else
                 ""
     in
-    "<h3>" ++ addendum ++ arg ++ "</h3>"
+    tag "h3" (idPhrase "subsection" sectionName) (label ++ sectionName)
 
 
 renderSubsectionStar : LatexState -> List LatexExpression -> String
 renderSubsectionStar latexState args =
     let
-        arg =
+        sectionName =
             renderArg 0 latexState args
     in
-    "<h3>" ++ arg ++ "</h3>"
+    tag "h3" (idPhrase "subsection" sectionName) sectionName
 
 
 renderSubSubsection : LatexState -> List LatexExpression -> String
 renderSubSubsection latexState args =
     let
-        arg =
+        sectionName =
             renderArg 0 latexState args
 
         s1 =
@@ -815,22 +848,22 @@ renderSubSubsection latexState args =
         s3 =
             getCounter "s3" latexState
 
-        addendum =
+        label =
             if s1 > 0 then
                 toString s1 ++ "." ++ toString s2 ++ "." ++ toString s3 ++ " "
             else
                 ""
     in
-    "<h4>" ++ addendum ++ arg ++ "</h4>"
+    tag "h4" (idPhrase "subsubsection" sectionName) (label ++ sectionName)
 
 
 renderSubSubsectionStar : LatexState -> List LatexExpression -> String
 renderSubSubsectionStar latexState args =
     let
-        arg =
+        sectionName =
             renderArg 0 latexState args
     in
-    "<h4>" ++ arg ++ "</h4>"
+    tag "h4" (idPhrase "subsubsection" sectionName) sectionName
 
 
 renderTerm : LatexState -> List LatexExpression -> String
@@ -931,16 +964,35 @@ makeTocItem tocItem =
         ti =
             Tuple.second tocItem
 
-        tagPrefix =
-            "<li class=\"sectionLevel" ++ toString ti.level ++ "\" >"
+        classProperty =
+            "class=\"sectionLevel" ++ toString ti.level ++ "\""
 
-        content =
-            ti.label ++ ". " ++ ti.name
+        id =
+            makeId (sectionPrefix ti.level) ti.name
 
-        tagSuffix =
-            "</li>"
+        href =
+            "href=\"#" ++ id ++ "\""
+
+        innerTag =
+            ti.label ++ " " ++ tag "a" href ti.name
     in
-    tagPrefix ++ content ++ tagSuffix
+    tag "li" classProperty innerTag
+
+
+sectionPrefix : Int -> String
+sectionPrefix level =
+    case level of
+        1 ->
+            "section"
+
+        2 ->
+            "subsection"
+
+        3 ->
+            "subsubsection"
+
+        _ ->
+            "asection"
 
 
 
