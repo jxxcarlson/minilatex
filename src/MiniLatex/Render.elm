@@ -489,6 +489,7 @@ renderMacroDict =
         , ( "title", \x y -> "" )
         , ( "author", \x y -> "" )
         , ( "date", \x y -> "" )
+        , ( "revision", \x y -> "" )
         , ( "email", \x y -> "" )
         , ( "term", \x y -> renderTerm x y )
         , ( "xlink", \x y -> renderXLink x y )
@@ -884,11 +885,20 @@ renderTitle latexState list =
         email =
             getDictionaryItem "email" latexState
 
+        revision =
+            getDictionaryItem "revision" latexState
+
+        revisionText =
+            if revision /= "" then
+                "Last revised " ++ revision
+            else
+                ""
+
         titlePart =
             "\n<div class=\"title\">" ++ title ++ "</div>"
 
         bodyParts =
-            [ "<div class=\"authorinfo\">", author, date, email, "</div>\n" ]
+            [ "<div class=\"authorinfo\">", author, email, date, revisionText, "</div>\n" ]
                 |> List.filter (\x -> x /= "")
 
         bodyPart =

@@ -245,6 +245,9 @@ updateState parsedParagraph latexState =
                 ( "macro", "email" ) ->
                     setDictionaryItemForMacro "email" headElement latexState
 
+                ( "macro", "revision" ) ->
+                    setDictionaryItemForMacro "revision" headElement latexState
+
                 ( "env", "theorem" ) ->
                     handleTheoremNumbers latexState headElement
 
