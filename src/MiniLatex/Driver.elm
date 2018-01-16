@@ -52,6 +52,8 @@ render macroDefinitions text =
     MiniLatexDiffer.initialize emptyLatexState text |> getRenderedText macroDefinitions
 
 
+{-| Parse the given text and return an AST represeting it.
+-}
 parse : String -> List (List LatexExpression)
 parse text =
     text
