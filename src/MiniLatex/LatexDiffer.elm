@@ -21,7 +21,12 @@ initialize latexState text =
                 |> Accumulator.parseParagraphs emptyLatexState
 
         latexState2 =
-            { emptyLatexState | crossReferences = latexState1.crossReferences }
+            Debug.log "latexState2"
+                { emptyLatexState
+                    | crossReferences = latexState1.crossReferences
+                    , tableOfContents = latexState1.tableOfContents
+                    , dictionary = latexState1.dictionary
+                }
 
         ( renderedParagraphs, latexState3 ) =
             latexExpressionList

@@ -1,6 +1,7 @@
 module MiniLatex.Render
     exposing
-        ( render
+        ( makeTableOfContents
+        , render
         , renderLatexList
         , renderString
         , transformText
@@ -13,9 +14,11 @@ import MiniLatex.KeyValueUtilities as KeyValueUtilities
 import MiniLatex.LatexState
     exposing
         ( LatexState
+        , TocEntry
         , emptyLatexState
         , getCounter
         , getCrossReference
+        , getDictionaryItem
         )
 import MiniLatex.Parser exposing (LatexExpression(..), defaultLatexList, latexList)
 import Parser
@@ -71,10 +74,14 @@ extractList latexExpression =
             []
 
 
-{-| THE MAIN RENDING FUNCTION
+{-| THE MAIN RENDERING FUNCTION
 -}
 render : LatexState -> LatexExpression -> String
 render latexState latexExpression =
+    let
+        _ =
+            Debug.log "latexState1" latexState
+    in
     case latexExpression of
         Comment str ->
             renderComment str
@@ -462,6 +469,8 @@ renderMacroDict =
         , ( "italic", \x y -> renderItalic x y )
         , ( "label", \x y -> "" )
         , ( "maketitle", \x y -> "" )
+        , ( "tableofcontents", \x y -> renderTableOfContents x y )
+        , ( "maketitle", \x y -> renderTitle x y )
         , ( "mdash", \x y -> "&mdash;" )
         , ( "ndash", \x y -> "&ndash;" )
         , ( "newcommand", \x y -> renderNewCommand x y )
@@ -469,6 +478,7 @@ renderMacroDict =
         , ( "section", \x y -> renderSection x y )
         , ( "section*", \x y -> renderSectionStar x y )
         , ( "setcounter", \x y -> "" )
+        , ( "medskip", \x y -> renderMedSkip x y )
         , ( "smallskip", \x y -> renderSmallSkip x y )
         , ( "strong", \x y -> renderStrong x y )
         , ( "subheading", \x y -> renderSubheading x y )
@@ -476,7 +486,10 @@ renderMacroDict =
         , ( "subsection*", \x y -> renderSubsectionStar x y )
         , ( "subsubsection", \x y -> renderSubSubsection x y )
         , ( "subsubsection*", \x y -> renderSubSubsectionStar x y )
-        , ( "title", \x y -> renderTitle x y )
+        , ( "title", \x y -> "" )
+        , ( "author", \x y -> "" )
+        , ( "date", \x y -> "" )
+        , ( "email", \x y -> "" )
         , ( "term", \x y -> renderTerm x y )
         , ( "xlink", \x y -> renderXLink x y )
         , ( "xlinkPublic", \x y -> renderXLinkPublic x y )
@@ -522,9 +535,14 @@ renderBigSkip latexState args =
     div [] [ "<br><br>" ]
 
 
+renderMedSkip : LatexState -> List LatexExpression -> String
+renderMedSkip latexState args =
+    div [] [ "<br>" ]
+
+
 renderSmallSkip : LatexState -> List LatexExpression -> String
 renderSmallSkip latexState args =
-    div [] [ "<br>" ]
+    "<p class=\"smallskip\"> &nbsp;</p>"
 
 
 {-| Needs work
@@ -814,15 +832,6 @@ renderSubSubsectionStar latexState args =
     "<h4>" ++ arg ++ "</h4>"
 
 
-renderTitle : LatexState -> List LatexExpression -> String
-renderTitle latexState args =
-    let
-        arg =
-            renderArg 0 latexState args
-    in
-    "<h1>" ++ arg ++ "</h1>"
-
-
 renderTerm : LatexState -> List LatexExpression -> String
 renderTerm latexState args =
     let
@@ -854,6 +863,74 @@ renderXLinkPublic latexState args =
             renderArg 1 latexState args
     in
     " <a href=\"" ++ Configuration.client ++ "##public/" ++ id ++ "\">" ++ label ++ "</a>"
+
+
+
+{- TABLE OF CONTENTS -}
+
+
+renderTitle : LatexState -> List LatexExpression -> String
+renderTitle latexState list =
+    let
+        title =
+            getDictionaryItem "title" latexState
+
+        author =
+            getDictionaryItem "author" latexState
+
+        date =
+            getDictionaryItem "date" latexState
+
+        email =
+            getDictionaryItem "email" latexState
+
+        titlePart =
+            "\n<div class=\"title\">" ++ title ++ "</div>"
+
+        bodyParts =
+            [ "<div class=\"authorinfo\">", author, date, email, "</div>\n" ]
+                |> List.filter (\x -> x /= "")
+
+        bodyPart =
+            String.join "\n" bodyParts
+    in
+    String.join "\n" [ titlePart, bodyPart ]
+
+
+renderTableOfContents : LatexState -> List LatexExpression -> String
+renderTableOfContents latexState list =
+    let
+        innerPart =
+            makeTableOfContents latexState
+    in
+    "\n<p class=\"tocTitle\">Table of Contents</p>\n<ul class=\"ListEnvironment\">\n" ++ innerPart ++ "\n</ul>\n"
+
+
+makeTableOfContents : LatexState -> String
+makeTableOfContents latexState =
+    List.foldl (\tocItem acc -> acc ++ [ makeTocItem tocItem ]) [] (List.indexedMap (,) latexState.tableOfContents)
+        |> String.join "\n"
+
+
+makeTocItem : ( Int, TocEntry ) -> String
+makeTocItem tocItem =
+    let
+        i =
+            Tuple.first tocItem
+
+        ti =
+            Tuple.second tocItem
+
+        tagPrefix =
+            "<li class=\"sectionLevel" ++ toString ti.level ++ "\" >"
+
+        content =
+            ti.label ++ ". " ++ ti.name
+
+        tagSuffix =
+            "</li>"
+    in
+    tagPrefix ++ content ++ tagSuffix
 
 
 

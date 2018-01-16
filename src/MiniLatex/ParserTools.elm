@@ -90,3 +90,46 @@ getMacros : String -> List LatexExpression -> List LatexExpression
 getMacros macroName expressionList =
     expressionList
         |> List.filter (\expr -> isMacro macroName expr)
+
+
+
+-- unpack : List LatexExpression -> LatexExpression
+
+
+headLatexExpression : List LatexExpression -> LatexExpression
+headLatexExpression list =
+    let
+        he =
+            case List.head list of
+                Just expr ->
+                    expr
+
+                Nothing ->
+                    LatexList []
+    in
+    he
+
+
+valueOfLatexList : LatexExpression -> List LatexExpression
+valueOfLatexList latexList =
+    case latexList of
+        LatexList value ->
+            value
+
+        _ ->
+            [ LXString "Error getting value of LatexList" ]
+
+
+valueOfLXString : LatexExpression -> String
+valueOfLXString expr =
+    case expr of
+        LXString str ->
+            str
+
+        _ ->
+            "Error getting value of LatexString"
+
+
+unpackString : List LatexExpression -> String
+unpackString expr =
+    expr |> headLatexExpression |> valueOfLatexList |> headLatexExpression |> valueOfLXString
