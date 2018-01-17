@@ -78,15 +78,8 @@ getRenderedText macroDefinitions editRecord =
         paragraphs =
             editRecord.renderedParagraphs
 
-        _ =
-            Debug.log "idList" editRecord.idList
-
-        _ =
-            Debug.log "latexState2" editRecord.latexState
-
         pTagList =
-            Debug.log "pTags"
-                (pTags editRecord)
+            pTags editRecord
     in
     List.map2 (\para pTag -> pTag ++ "\n" ++ para ++ "\n</p>") paragraphs pTagList
         |> String.join "\n\n"

@@ -124,8 +124,7 @@ setDictionaryItem key value latexState =
             latexState.dictionary
 
         newDictionary =
-            Debug.log "newDictionay"
-                (Dict.insert key value dictionary)
+            Dict.insert key value dictionary
     in
     { latexState | dictionary = newDictionary }
 

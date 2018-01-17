@@ -21,12 +21,11 @@ initialize latexState text =
                 |> Accumulator.parseParagraphs emptyLatexState
 
         latexState2 =
-            Debug.log "latexState2"
-                { emptyLatexState
-                    | crossReferences = latexState1.crossReferences
-                    , tableOfContents = latexState1.tableOfContents
-                    , dictionary = latexState1.dictionary
-                }
+            { emptyLatexState
+                | crossReferences = latexState1.crossReferences
+                , tableOfContents = latexState1.tableOfContents
+                , dictionary = latexState1.dictionary
+            }
 
         ( renderedParagraphs, latexState3 ) =
             latexExpressionList
@@ -39,8 +38,7 @@ initialize latexState text =
             List.length paragraphs
 
         idList =
-            Debug.log "idList in initialize"
-                (List.range 1 n |> List.map (Differ.prefixer 0))
+            List.range 1 n |> List.map (Differ.prefixer 0)
     in
     EditRecord paragraphs renderedParagraphs2 latexState2 idList Nothing Nothing
 

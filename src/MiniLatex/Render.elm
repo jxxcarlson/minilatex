@@ -80,10 +80,6 @@ extractList latexExpression =
 -}
 render : LatexState -> LatexExpression -> String
 render latexState latexExpression =
-    let
-        _ =
-            Debug.log "latexState1" latexState
-    in
     case latexExpression of
         Comment str ->
             renderComment str

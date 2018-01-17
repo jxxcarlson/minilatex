@@ -194,12 +194,10 @@ renderDiff seed renderer diffRecord editRecord renderedStringList =
             List.map renderer diffRecord.middleSegmentInTarget
 
         ( newIdsStart, newIdsEnd ) =
-            Debug.log "newId Info"
-                (if nt == 0 then
-                    ( Nothing, Nothing )
-                 else
-                    ( Just ii, Just (ii + nt - 1) )
-                )
+            if nt == 0 then
+                ( Nothing, Nothing )
+            else
+                ( Just ii, Just (ii + nt - 1) )
     in
     { renderedParagraphs = initialSegmentRendered ++ middleSegmentRendered ++ terminalSegmentRendered
     , idList = idList
