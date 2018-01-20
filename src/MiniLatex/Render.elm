@@ -1,7 +1,6 @@
 module MiniLatex.Render
     exposing
-        ( compress
-        , makeTableOfContents
+        ( makeTableOfContents
         , render
         , renderLatexList
         , renderString
@@ -735,17 +734,19 @@ renderRef latexState args =
     getCrossReference key latexState
 
 
-compress : String -> String
-compress str =
-    str
-        |> String.toLower
-        |> String.Extra.replace " " ":"
-        |> Regex.replace Regex.All (Regex.regex "[,;.!?&_]") (\_ -> "")
-
-
 makeId : String -> String -> String
 makeId prefix name =
-    String.join ":" [ prefix, compress name ]
+    String.join ":" [ prefix, compress ":" name ]
+
+
+{-| map str to lower case and squeeze out bad characters
+-}
+compress : String -> String -> String
+compress replaceBlank str =
+    str
+        |> String.toLower
+        |> String.Extra.replace " " replaceBlank
+        |> Regex.replace Regex.All (Regex.regex "[,;.!?&_]") (\_ -> "")
 
 
 idPhrase : String -> String -> String

@@ -1,4 +1,14 @@
-module MiniLatex.Parser exposing (..)
+module MiniLatex.Parser
+    exposing
+        ( LatexExpression(..)
+        , defaultLatexList
+        , endWord
+        , envName
+        , latexList
+        , macro
+        , parse
+        , ws
+        )
 
 import Dict
 import Parser exposing (..)

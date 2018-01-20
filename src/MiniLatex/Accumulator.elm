@@ -49,7 +49,7 @@ type alias LatexInfo =
 
 {-| parseParagraphs: Using a given LatexState, take a list of strings,
 i.e., paragraphs, and compute a tuple consisting of the parsed
-paragraohs and the upodated LatexState.
+paragraphs and the upodated LatexState.
 -}
 parseParagraphs : LatexState -> List String -> ( List (List LatexExpression), LatexState )
 parseParagraphs latexState paragraphs =

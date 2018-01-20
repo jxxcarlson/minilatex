@@ -1,4 +1,4 @@
-module MiniLatex.LatexDiffer exposing (initialize, prepareContentForLatex, safeUpdate)
+module MiniLatex.LatexDiffer exposing (createEditRecord, prepareContentForLatex, safeUpdate)
 
 import MiniLatex.Accumulator as Accumulator
 import MiniLatex.Differ as Differ exposing (EditRecord)
@@ -8,8 +8,8 @@ import MiniLatex.Render as Render exposing (render, renderLatexList)
 import String.Extra
 
 
-initialize : LatexState -> String -> EditRecord
-initialize latexState text =
+createEditRecord : LatexState -> String -> EditRecord
+createEditRecord latexState text =
     let
         paragraphs =
             text
@@ -53,7 +53,7 @@ update seed editorRecord text =
 safeUpdate : Int -> EditRecord -> String -> EditRecord
 safeUpdate seed editRecord content =
     if Differ.isEmpty editRecord then
-        initialize emptyLatexState content
+        createEditRecord emptyLatexState content
     else
         update seed editRecord content
 

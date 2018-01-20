@@ -49,7 +49,7 @@ then `render macros source` yields the HTML text
 -}
 render : String -> String -> String
 render macroDefinitions text =
-    MiniLatexDiffer.initialize emptyLatexState text |> getRenderedText macroDefinitions
+    MiniLatexDiffer.createEditRecord emptyLatexState text |> getRenderedText macroDefinitions
 
 
 {-| Parse the given text and return an AST represeting it.

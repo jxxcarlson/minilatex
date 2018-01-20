@@ -1,9 +1,9 @@
 module MiniLatex.Differ
     exposing
         ( EditRecord
+        , createEditRecord
         , diff
         , emptyEditRecord
-        , initialize
         , isEmpty
         , prefixer
         , update
@@ -82,8 +82,8 @@ takeLast k x =
     x |> List.reverse |> List.take k |> List.reverse
 
 
-initialize : (String -> String) -> String -> EditRecord
-initialize transformer text =
+createEditRecord : (String -> String) -> String -> EditRecord
+createEditRecord transformer text =
     let
         paragraphs =
             Paragraph.logicalParagraphify text
