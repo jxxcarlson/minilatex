@@ -10,6 +10,9 @@ module MiniLatex.Render
 import Dict
 import List.Extra
 import MiniLatex.Configuration as Configuration
+import MiniLatex.Html as Html
+import MiniLatex.Image as Image exposing (..)
+import MiniLatex.JoinStrings as JoinStrings
 import MiniLatex.KeyValueUtilities as KeyValueUtilities
 import MiniLatex.LatexState
     exposing
@@ -107,76 +110,7 @@ render latexState latexExpression =
 
 renderLatexList : LatexState -> List LatexExpression -> String
 renderLatexList latexState args =
-    args |> List.map (render latexState) |> joinList
-
-
-
-{- joinList : List String -> String
-   join a list of strings to make a single string.
-   Adjacent strings l and r are joined by either an empty
-   string or a spaxel depending on the terminal character
-   of l and the leading character of r.  This is operation
-   is a matter of style, but it is important.
--}
-
-
-joinList : List String -> String
-joinList stringList =
-    let
-        start =
-            List.head stringList |> Maybe.withDefault ""
-    in
-    List.foldl joinDatum2String ( "", "" ) stringList |> Tuple.first
-
-
-joinDatum2String : String -> ( String, String ) -> ( String, String )
-joinDatum2String current datum =
-    let
-        ( acc, previous ) =
-            datum
-    in
-    case joinType previous current of
-        NoSpace ->
-            ( acc ++ current, current )
-
-        Space ->
-            ( acc ++ " " ++ current, current )
-
-
-type JoinType
-    = Space
-    | NoSpace
-
-
-lastChar =
-    String.right 1
-
-
-firstChar =
-    String.left 1
-
-
-joinType : String -> String -> JoinType
-joinType l r =
-    let
-        lastCharLeft =
-            lastChar l
-
-        firstCharRight =
-            firstChar r
-    in
-    if l == "" then
-        NoSpace
-    else if List.member lastCharLeft [ "(" ] then
-        NoSpace
-    else if List.member firstCharRight [ ")", ".", ",", "?", "!", ";", ":" ] then
-        NoSpace
-    else
-        Space
-
-
-
-{- End new code -}
+    args |> List.map (render latexState) |> JoinStrings.joinList
 
 
 renderArgList : LatexState -> List LatexExpression -> String
@@ -249,7 +183,7 @@ renderDefaultEnvironment name latexState body =
 renderIndentEnvironment : LatexState -> LatexExpression -> String
 renderIndentEnvironment latexState body =
     -- div [ "style=\"margin-left:2em\"" ] [ (render latexState body) ]
-    div [ "style=\"margin-left:2em\"" ] [ render latexState body ]
+    Html.div [ "style=\"margin-left:2em\"" ] [ render latexState body ]
 
 
 renderTheoremLikeEnvironment : LatexState -> String -> LatexExpression -> String
@@ -360,11 +294,11 @@ renderMacros latexState body =
 
 
 renderQuotation latexState body =
-    div [ "class=\"quotation\"" ] [ render latexState body ]
+    Html.div [ "class=\"quotation\"" ] [ render latexState body ]
 
 
 renderVerse latexState body =
-    div [ "class=\"verse\"" ] [ String.trim <| render latexState body ]
+    Html.div [ "class=\"verse\"" ] [ String.trim <| render latexState body ]
 
 
 renderTabular latexState body =
@@ -530,12 +464,12 @@ renderBozo latexState args =
 
 renderBigSkip : LatexState -> List LatexExpression -> String
 renderBigSkip latexState args =
-    div [] [ "<br><br>" ]
+    Html.div [] [ "<br><br>" ]
 
 
 renderMedSkip : LatexState -> List LatexExpression -> String
 renderMedSkip latexState args =
-    div [] [ "<br>" ]
+    Html.div [] [ "<br>" ]
 
 
 renderSmallSkip : LatexState -> List LatexExpression -> String
@@ -652,60 +586,6 @@ renderIFrame latexState args =
             " style = \"width:100%; height:" ++ height ++ "; border:1; border-radius: 3px; overflow:scroll;\""
     in
     "<iframe scrolling=\"yes\" " ++ src ++ sandbox ++ style ++ " ></iframe>\n<center style=\"margin-top: 0px;\"><a href=\"" ++ url ++ "\" target=_blank>" ++ title ++ "</a></center>"
-
-
-renderImage : LatexState -> List LatexExpression -> String
-renderImage latexState args =
-    let
-        url =
-            renderArg 0 latexState args
-
-        label =
-            renderArg 1 latexState args
-
-        attributeString =
-            renderArg 2 latexState args
-
-        imageAttrs =
-            parseImageAttributes attributeString
-    in
-    if imageAttrs.float == "left" then
-        div [ imageFloatLeftStyle imageAttrs ] [ img url imageAttrs, "<br>", label ]
-    else if imageAttrs.float == "right" then
-        div [ imageFloatRightStyle imageAttrs ] [ img url imageAttrs, "<br>", label ]
-    else if imageAttrs.align == "center" then
-        div [ imageCenterStyle imageAttrs ] [ img url imageAttrs, "<br>", label ]
-    else
-        "<image src=\"" ++ url ++ "\" " ++ imageAttributes imageAttrs attributeString ++ " >"
-
-
-renderImageRef : LatexState -> List LatexExpression -> String
-renderImageRef latexState args =
-    let
-        url =
-            renderArg 0 latexState args
-
-        imageUrl =
-            renderArg 1 latexState args
-
-        attributeString =
-            renderArg 2 latexState args
-
-        imageAttrs =
-            parseImageAttributes attributeString
-    in
-    if imageAttrs.float == "left" then
-        a url (div [ imageFloatLeftStyle imageAttrs ] [ img imageUrl imageAttrs ])
-    else if imageAttrs.float == "right" then
-        a url (div [ imageFloatRightStyle imageAttrs ] [ img imageUrl imageAttrs ])
-    else if imageAttrs.align == "center" then
-        a url (div [ imageCenterStyle imageAttrs ] [ img imageUrl imageAttrs ])
-    else
-        a url (div [ imageCenterStyle imageAttrs ] [ img imageUrl imageAttrs ])
-
-
-a url label =
-    "<a href=\"" ++ url ++ "\"  target=\"_blank\" >\n" ++ label ++ "\n</a>"
 
 
 renderItalic : LatexState -> List LatexExpression -> String
@@ -992,100 +872,51 @@ sectionPrefix level =
             "asection"
 
 
-
-{- IMAGE HELPERS -}
-
-
-imageCenterStyle imageAttributes =
-    "class=\"center\" style=\"width: " ++ toString (imageAttributes.width + 20) ++ "px; margin-left:auto, margin-right:auto; text-align: center;\""
-
-
-imageFloatRightStyle imageAttributes =
-    "style=\"float: right; width: " ++ toString (imageAttributes.width + 20) ++ "px; margin: 0 0 7.5px 10px; text-align: center;\""
-
-
-imageFloatLeftStyle imageAttributes =
-    "style=\"float: left; width: " ++ toString (imageAttributes.width + 20) ++ "px; margin: 0 10px 7.5px 0; text-align: center;\""
-
-
-div : List String -> List String -> String
-div attributes children =
+renderImage : LatexState -> List LatexExpression -> String
+renderImage latexState args =
     let
+        url =
+            renderArg 0 latexState args
+
+        label =
+            renderArg 1 latexState args
+
         attributeString =
-            attributes |> String.join " "
+            renderArg 2 latexState args
 
-        childrenString =
-            children |> String.join "\n"
+        imageAttrs =
+            parseImageAttributes attributeString
     in
-    "<div " ++ attributeString ++ " >\n" ++ childrenString ++ "\n</div>"
+    if imageAttrs.float == "left" then
+        Html.div [ imageFloatLeftStyle imageAttrs ] [ Html.img url imageAttrs, "<br>", label ]
+    else if imageAttrs.float == "right" then
+        Html.div [ imageFloatRightStyle imageAttrs ] [ Html.img url imageAttrs, "<br>", label ]
+    else if imageAttrs.align == "center" then
+        Html.div [ imageCenterStyle imageAttrs ] [ Html.img url imageAttrs, "<br>", label ]
+    else
+        "<image src=\"" ++ url ++ "\" " ++ imageAttributes imageAttrs attributeString ++ " >"
 
 
-img url imageAttributs =
-    "<img src=\"" ++ url ++ "\" width=" ++ toString imageAttributs.width ++ " >"
-
-
-handleCenterImage url label imageAttributes =
+renderImageRef : LatexState -> List LatexExpression -> String
+renderImageRef latexState args =
     let
-        width =
-            imageAttributes.width
+        url =
+            renderArg 0 latexState args
+
+        imageUrl =
+            renderArg 1 latexState args
+
+        attributeString =
+            renderArg 2 latexState args
+
+        imageAttrs =
+            parseImageAttributes attributeString
     in
-    div [ imageCenterStyle imageAttributes ] [ img url imageAttributes, "<br>", label ]
-
-
-handleFloatedImageRight url label imageAttributes =
-    let
-        width =
-            imageAttributes.width
-
-        imageRightDivLeftPart width =
-            "<div style=\"float: right; width: " ++ toString (width + 20) ++ "px; margin: 0 0 7.5px 10px; text-align: center;\">"
-    in
-    imageRightDivLeftPart width ++ "<img src=\"" ++ url ++ "\" width=" ++ toString width ++ "><br>" ++ label ++ "</div>"
-
-
-handleFloatedImageLeft url label imageAttributes =
-    let
-        width =
-            imageAttributes.width
-
-        imageLeftDivLeftPart width =
-            "<div style=\"float: left; width: " ++ toString (width + 20) ++ "px; margin: 0 10px 7.5px 0; text-align: center;\">"
-    in
-    imageLeftDivLeftPart width ++ "<img src=\"" ++ url ++ "\" width=" ++ toString width ++ "><br>" ++ label ++ "</div>"
-
-
-type alias ImageAttributes =
-    { width : Int, float : String, align : String }
-
-
-parseImageAttributes : String -> ImageAttributes
-parseImageAttributes attributeString =
-    let
-        kvList =
-            KeyValueUtilities.getKeyValueList attributeString
-
-        widthValue =
-            KeyValueUtilities.getValue "width" kvList |> String.toInt |> Result.withDefault 200
-
-        floatValue =
-            KeyValueUtilities.getValue "float" kvList
-
-        alignValue =
-            KeyValueUtilities.getValue "align" kvList
-    in
-    ImageAttributes widthValue floatValue alignValue
-
-
-imageAttributes : ImageAttributes -> String -> String
-imageAttributes imageAttrs attributeString =
-    let
-        widthValue =
-            imageAttrs.width |> toString
-
-        widthElement =
-            if widthValue /= "" then
-                "width=" ++ widthValue
-            else
-                ""
-    in
-    widthElement
+    if imageAttrs.float == "left" then
+        Html.a url (Html.div [ imageFloatLeftStyle imageAttrs ] [ Html.img imageUrl imageAttrs ])
+    else if imageAttrs.float == "right" then
+        Html.a url (Html.div [ imageFloatRightStyle imageAttrs ] [ Html.img imageUrl imageAttrs ])
+    else if imageAttrs.align == "center" then
+        Html.a url (Html.div [ imageCenterStyle imageAttrs ] [ Html.img imageUrl imageAttrs ])
+    else
+        Html.a url (Html.div [ imageCenterStyle imageAttrs ] [ Html.img imageUrl imageAttrs ])
