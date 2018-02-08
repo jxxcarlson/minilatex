@@ -1,14 +1,13 @@
-module MiniLatex.Parser exposing (..)
-
--- ( LatexExpression(..)
--- , defaultLatexList
--- , endWord
--- , envName
--- , latexList
--- , macro
--- , parse
--- , ws
--- )
+module MiniLatex.Parser
+    exposing
+        ( LatexExpression(..)
+        , defaultLatexList
+        , endWord
+        , envName
+        , latexList
+        , macro
+        , parse
+        )
 
 import Dict
 import MiniLatex.ErrorMessages exposing (explanation)
@@ -286,6 +285,7 @@ endWord =
             |. ignore zeroOrMore ((==) ' ')
             |. symbol "\\end{"
             |= parseUntil "}"
+            |. ws
         )
 
 

@@ -469,7 +469,7 @@ macroRenderer name =
 
 reproduceMacro : String -> LatexState -> List LatexExpression -> String
 reproduceMacro name latexState args =
-    "\\" ++ name ++ renderArgList emptyLatexState args
+    "<span style=\"color: red;\">\\" ++ name ++ renderArgList emptyLatexState args ++ "</span>"
 
 
 renderMacro : LatexState -> String -> List LatexExpression -> String
@@ -489,7 +489,7 @@ renderSMacro latexState name args le =
             f latexState args le
 
         Nothing ->
-            "\\" ++ name ++ renderArgList emptyLatexState args ++ " " ++ render latexState le
+            "<span style=\"color: red;\">\\" ++ name ++ renderArgList emptyLatexState args ++ " " ++ render latexState le ++ "</span>"
 
 
 
