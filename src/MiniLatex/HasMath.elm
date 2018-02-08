@@ -36,6 +36,9 @@ hasMath expr =
         Macro str expr ->
             expr |> List.foldr (\x acc -> hasMath x || acc) False
 
+        SMacro str expr str2 ->
+            expr |> List.foldr (\x acc -> hasMath x || acc) False
+
         Environment str expr ->
             envHasMath str expr
 

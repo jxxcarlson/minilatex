@@ -1,15 +1,15 @@
 module MiniLatex.RenderToLatex
     exposing
-        ( quasiIdentity
-        , quasiIdentityTest
-        , quasiIdentityTestModSpace
-        , render
+        ( render
+        , renderBackToLatex
+        , renderBackToLatexTest
+        , renderBackToLatexTestModSpace
         , renderLatexList
-        , renderString
         )
 
 import List.Extra
 import MiniLatex.JoinStrings as JoinStrings
+import MiniLatex.Paragraph
 import MiniLatex.Parser exposing (LatexExpression(..), defaultLatexList, latexList)
 import Parser
 import String.Extra
@@ -17,67 +17,25 @@ import String.Extra
 
 {-| parse a stringg and render it back into Latex
 -}
-quasiIdentity : String -> String
-quasiIdentity str =
-    str |> MiniLatex.Parser.parse |> renderLatexList
+renderBackToLatex : String -> String
+renderBackToLatex str =
+    str
+        |> MiniLatex.Paragraph.logicalParagraphify
+        |> List.map MiniLatex.Parser.parse
+        |> List.map renderLatexList
+        |> List.foldl (\par acc -> acc ++ par ++ "\n\n") ""
 
 
-quasiIdentityTest : String -> Bool
-quasiIdentityTest str =
-    str == quasiIdentity str
+renderBackToLatexTest : String -> Bool
+renderBackToLatexTest str =
+    str == renderBackToLatex str
 
 
-quasiIdentityTestModSpace : String -> Bool
-quasiIdentityTestModSpace str =
-    (str |> String.Extra.replace " " "") == (quasiIdentity str |> String.Extra.replace " " "")
+renderBackToLatexTestModSpace : String -> Bool
+renderBackToLatexTestModSpace str =
+    (str |> String.Extra.replace " " "") == (renderBackToLatex str |> String.Extra.replace " " "")
 
 
-
--- |> \str -> "\n<p>" ++ str ++ "</p>\n"
-{- FUNCTIONS FOR TESTING THINGS -}
-
-
-getElement : Int -> List LatexExpression -> LatexExpression
-getElement k list =
-    List.Extra.getAt k list |> Maybe.withDefault (LXString "xxx")
-
-
-parseString parser str =
-    Parser.run parser str
-
-
-renderString parser str =
-    let
-        parserOutput =
-            Parser.run parser str
-
-        renderOutput =
-            case parserOutput of
-                Ok latexExpression ->
-                    render latexExpression
-
-                Err error ->
-                    "Error: " ++ toString error
-    in
-    renderOutput
-
-
-
-{- TYPES AND DEFAULT VALJUES -}
-
-
-extractList : LatexExpression -> List LatexExpression
-extractList latexExpression =
-    case latexExpression of
-        LatexList a ->
-            a
-
-        _ ->
-            []
-
-
-{-| THE MAIN RENDERING FUNCTION
--}
 render : LatexExpression -> String
 render latexExpression =
     case latexExpression of
@@ -87,11 +45,14 @@ render latexExpression =
         Macro name args ->
             renderMacro name args
 
+        SMacro name args le ->
+            renderSMacro name args le
+
         Item level latexExpression ->
             renderItem level latexExpression
 
         InlineMath str ->
-            "$" ++ str ++ "$"
+            " $" ++ str ++ "$"
 
         DisplayMath str ->
             "$$" ++ str ++ "$$"
@@ -108,7 +69,11 @@ render latexExpression =
 
 renderLatexList : List LatexExpression -> String
 renderLatexList args =
-    args |> List.map render |> JoinStrings.joinList
+    args |> List.map render |> List.foldl (\item acc -> acc ++ item) ""
+
+
+
+-- JoinStrings.joinList
 
 
 renderArgList : List LatexExpression -> String
@@ -126,19 +91,16 @@ renderComment str =
     "% " ++ str ++ "\n"
 
 
-
-{- ENVIROMENTS -}
-
-
 renderEnvironment : String -> LatexExpression -> String
 renderEnvironment name body =
-    "\\begin{" ++ name ++ "}\n" ++ render body ++ "\n\\end{" ++ name ++ "}\n\n"
-
-
-
-{- MACROS: DISPATCHERS AND HELPERS -}
+    "\\begin{" ++ name ++ "}\n" ++ render body ++ "\n\\end{" ++ name ++ "}\n"
 
 
 renderMacro : String -> List LatexExpression -> String
 renderMacro name args =
-    "\\" ++ name ++ renderArgList args
+    " \\" ++ name ++ renderArgList args
+
+
+renderSMacro : String -> List LatexExpression -> LatexExpression -> String
+renderSMacro name args le =
+    " \\" ++ name ++ renderArgList args ++ " " ++ render le ++ "\n\n"

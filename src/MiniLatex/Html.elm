@@ -1,4 +1,4 @@
-module MiniLatex.Html exposing (a, div, img)
+module MiniLatex.Html exposing (..)
 
 
 div : List String -> List String -> String
@@ -19,3 +19,15 @@ img url imageAttributs =
 
 a url label =
     "<a href=\"" ++ url ++ "\"  target=\"_blank\" >\n" ++ label ++ "\n</a>"
+
+
+h1 arg =
+    "<h1>" ++ arg ++ "</h1>"
+
+
+h2 arg =
+    "<h2>" ++ arg ++ "</h2>"
+
+
+h3 arg =
+    "<h3>" ++ arg ++ "</h3>"

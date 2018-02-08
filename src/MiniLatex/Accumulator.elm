@@ -2,11 +2,9 @@ module MiniLatex.Accumulator
     exposing
         ( parseParagraphs
         , renderParagraphs
-          -- , renderParagraph
-          --  , transformParagraphs
         )
 
-import List.Extra
+import Dict
 import MiniLatex.LatexState
     exposing
         ( Counters
@@ -20,13 +18,46 @@ import MiniLatex.LatexState
         , updateCounter
         )
 import MiniLatex.Parser as Parser exposing (LatexExpression(..), macro, parse)
-import MiniLatex.ParserTools as PT
 import MiniLatex.Render as Render exposing (renderLatexList)
-import Parser as P
-import String.Extra
+import MiniLatex.StateReducerHelpers as SRH
 
 
 {- Types -}
+
+
+{-| Given an initial state and list of inputs of type a,
+produce a list of outputs of type b and a new state
+-}
+type alias Accumulator state a b =
+    state -> List a -> ( List b, state )
+
+
+type alias Reducer a b =
+    a -> b -> b
+
+
+type alias ParserReducer =
+    Reducer (List LatexExpression) LatexState
+
+
+type alias RenderReducer =
+    Reducer (List LatexExpression) ( List String, LatexState )
+
+
+{-| Transform a reducer using (a -> b)
+-}
+type alias ParserReducerTransformer a b c =
+    (a -> b)
+    -> Reducer b c
+    -> Reducer a ( List b, c )
+
+
+{-| Transform a reducer using (a -> b -> c)
+-}
+type alias RenderReducerTransformer a b c =
+    (a -> b -> c)
+    -> Reducer b a
+    -> Reducer b ( List c, a )
 
 
 type alias LatexInfo =
@@ -38,7 +69,7 @@ type alias LatexInfo =
 -- transformParagraphs : LatexState -> List String -> ( List String, LatexState )
 -- transformParagraphs latexState paragraphs =
 --     paragraphs
---         |> accumulator Parser.parse renderParagraph updateState latexState
+--         |> accumulator Parser.parse renderParagraph latexStateReducer latexState
 --
 --
 -- renderParagraph : List LatexExpression -> LatexState -> String
@@ -50,44 +81,46 @@ type alias LatexInfo =
 {-| parseParagraphs: Using a given LatexState, take a list of strings,
 i.e., paragraphs, and compute a tuple consisting of the parsed
 paragraphs and the upodated LatexState.
--}
+
 parseParagraphs : LatexState -> List String -> ( List (List LatexExpression), LatexState )
+
+-}
+parseParagraphs : Accumulator LatexState String (List LatexExpression)
 parseParagraphs latexState paragraphs =
-    paragraphs
-        |> parseAccumulator Parser.parse updateState latexState
+    parseAccumulator latexState paragraphs
 
 
 {-| renderParagraphs: take a list of (List LatexExpressions)
 and a LatexState and rehder the list into a list of strings.
--}
+
 renderParagraphs : LatexState -> List (List LatexExpression) -> ( List String, LatexState )
+
+-}
+renderParagraphs : Accumulator LatexState (List LatexExpression) String
 renderParagraphs latexState paragraphs =
-    paragraphs
-        |> renderAccumulator renderLatexList updateState latexState
+    renderAccumulator latexState paragraphs
 
 
 
 {- ACCUMULATORS AND TRANSFORMERS -}
+-- parseAccumulator : LatexState -> List String -> ( List (List LatexExpression), LatexState )
 
 
-parseAccumulator :
-    (String -> List LatexExpression) -- parse
-    -> (List LatexExpression -> LatexState -> LatexState) -- updateState
-    -> LatexState -- latexState
-    -> List String
-    -> ( List (List LatexExpression), LatexState )
-parseAccumulator parse updateState latexState inputList =
+parseAccumulator : Accumulator LatexState String (List LatexExpression)
+parseAccumulator latexState inputList =
     inputList
-        |> List.foldl (parseTransformer parse updateState) ( [], latexState )
+        |> List.foldl parserAccumulatorReducer ( [], latexState )
 
 
-parseTransformer :
-    (String -> List LatexExpression) -- parse
-    -> (List LatexExpression -> LatexState -> LatexState) -- updateState
-    -> String --input
-    -> ( List (List LatexExpression), LatexState ) -- acc
-    -> ( List (List LatexExpression), LatexState ) -- acc
-parseTransformer parse updateState input acc =
+parserAccumulatorReducer : Reducer String ( List (List LatexExpression), LatexState )
+parserAccumulatorReducer =
+    parserReducerTransformer Parser.parse latexStateReducer
+
+
+{-| parserReducerTransformer parse latexStateReducer is a Reducer input acc
+-}
+parserReducerTransformer : ParserReducerTransformer String (List LatexExpression) LatexState
+parserReducerTransformer parse latexStateReducer input acc =
     let
         ( outputList, state ) =
             acc
@@ -96,35 +129,32 @@ parseTransformer parse updateState input acc =
             parse input
 
         newState =
-            updateState parsedInput state
+            latexStateReducer parsedInput state
     in
     ( outputList ++ [ parsedInput ], newState )
 
 
-renderAccumulator :
-    (LatexState -> List LatexExpression -> String) -- render
-    -> (List LatexExpression -> LatexState -> LatexState) -- updateState
-    -> LatexState -- latexState
-    -> List (List LatexExpression)
-    -> ( List String, LatexState )
-renderAccumulator render updateState latexState inputList =
+renderAccumulatorReducer : Reducer (List LatexExpression) ( List String, LatexState )
+renderAccumulatorReducer =
+    renderTransformer renderLatexList latexStateReducer
+
+
+renderAccumulator : Accumulator LatexState (List LatexExpression) String
+renderAccumulator latexState inputList =
     inputList
-        |> List.foldl (renderTransformer render updateState) ( [], latexState )
+        |> List.foldl renderAccumulatorReducer ( [], latexState )
 
 
-renderTransformer :
-    (LatexState -> List LatexExpression -> String) -- render
-    -> (List LatexExpression -> LatexState -> LatexState) -- updateState
-    -> List LatexExpression --input
-    -> ( List String, LatexState ) -- acc
-    -> ( List String, LatexState ) -- acc
-renderTransformer render updateState input acc =
+{-| renderTransformer render latexStateReducer is a Reducer input acc
+-}
+renderTransformer : RenderReducerTransformer LatexState (List LatexExpression) String
+renderTransformer render latexStateReducer input acc =
     let
         ( outputList, state ) =
             acc
 
         newState =
-            updateState input state
+            latexStateReducer input state
 
         renderedInput =
             render newState input
@@ -149,8 +179,40 @@ info latexExpression =
 {- UPDATERS -}
 
 
-updateState : List LatexExpression -> LatexState -> LatexState
-updateState parsedParagraph latexState =
+latexStateReducerDict : Dict.Dict ( String, String ) (LatexInfo -> LatexState -> LatexState)
+latexStateReducerDict =
+    Dict.fromList
+        [ ( ( "macro", "setcounter" ), \x y -> SRH.setSectionCounters x y )
+        , ( ( "macro", "section" ), \x y -> SRH.updateSectionNumber x y )
+        , ( ( "macro", "subsection" ), \x y -> SRH.updateSubsectionNumber x y )
+        , ( ( "macro", "subsubsection" ), \x y -> SRH.updateSubsubsectionNumber x y )
+        , ( ( "macro", "title" ), \x y -> SRH.setDictionaryItemForMacro x y )
+        , ( ( "macro", "author" ), \x y -> SRH.setDictionaryItemForMacro x y )
+        , ( ( "macro", "date" ), \x y -> SRH.setDictionaryItemForMacro x y )
+        , ( ( "macro", "email" ), \x y -> SRH.setDictionaryItemForMacro x y )
+        , ( ( "macro", "revision" ), \x y -> SRH.setDictionaryItemForMacro x y )
+        , ( ( "env", "theorem" ), \x y -> SRH.setTheoremNumber x y )
+        , ( ( "env", "proposition" ), \x y -> SRH.setTheoremNumber x y )
+        , ( ( "env", "lemma" ), \x y -> SRH.setTheoremNumber x y )
+        , ( ( "env", "definition" ), \x y -> SRH.setTheoremNumber x y )
+        , ( ( "env", "corollary" ), \x y -> SRH.setTheoremNumber x y )
+        , ( ( "env", "equation" ), \x y -> SRH.setEquationNumber x y )
+        , ( ( "env", "align" ), \x y -> SRH.setEquationNumber x y )
+        ]
+
+
+latexStateReducerDispatcher : ( String, String ) -> (LatexInfo -> LatexState -> LatexState)
+latexStateReducerDispatcher ( typ_, name ) =
+    case Dict.get ( typ_, name ) latexStateReducerDict of
+        Just f ->
+            f
+
+        Nothing ->
+            \latexInfo latexState -> latexState
+
+
+latexStateReducer : Reducer (List LatexExpression) LatexState
+latexStateReducer parsedParagraph latexState =
     let
         headElement =
             parsedParagraph
@@ -160,258 +222,5 @@ updateState parsedParagraph latexState =
 
         he =
             { typ = "macro", name = "setcounter", value = [ LatexList [ LXString "section" ], LatexList [ LXString "7" ] ] }
-
-        newLatexState =
-            case ( headElement.typ, headElement.name ) of
-                ( "macro", "setcounter" ) ->
-                    let
-                        argList =
-                            headElement.value |> List.map PT.latexList2List |> List.map PT.list2LeadingString
-
-                        arg1 =
-                            getAt 0 argList
-
-                        arg2 =
-                            getAt 1 argList
-
-                        initialSectionNumber =
-                            if arg1 == "section" then
-                                arg2 |> String.toInt |> Result.withDefault 0
-                            else
-                                -1
-                    in
-                    if initialSectionNumber > -1 then
-                        latexState
-                            |> updateCounter "s1" (initialSectionNumber - 1)
-                            |> updateCounter "s2" 0
-                            |> updateCounter "s3" 0
-                    else
-                        latexState
-
-                ( "macro", "section" ) ->
-                    let
-                        label =
-                            getCounter "s1" latexState |> (\x -> x + 1) |> toString
-                    in
-                    latexState
-                        |> incrementCounter "s1"
-                        |> updateCounter "s2" 0
-                        |> updateCounter "s3" 0
-                        |> addSection (PT.unpackString headElement.value) label 1
-
-                ( "macro", "subsection" ) ->
-                    let
-                        s1 =
-                            getCounter "s1" latexState |> toString
-
-                        s2 =
-                            getCounter "s2" latexState |> (\x -> x + 1) |> toString
-
-                        label =
-                            s1 ++ "." ++ s2
-                    in
-                    latexState
-                        |> incrementCounter "s2"
-                        |> updateCounter "s3" 0
-                        |> addSection (PT.unpackString headElement.value) label 2
-
-                ( "macro", "subsubsection" ) ->
-                    let
-                        s1 =
-                            getCounter "s1" latexState |> toString
-
-                        s2 =
-                            getCounter "s2" latexState |> toString
-
-                        s3 =
-                            getCounter "s3" latexState |> (\x -> x + 1) |> toString
-
-                        label =
-                            s1 ++ "." ++ s2 ++ "." ++ s3
-                    in
-                    latexState
-                        |> incrementCounter "s3"
-                        |> addSection (PT.unpackString headElement.value) label 3
-
-                ( "macro", "title" ) ->
-                    setDictionaryItemForMacro "title" headElement latexState
-
-                ( "macro", "author" ) ->
-                    setDictionaryItemForMacro "author" headElement latexState
-
-                ( "macro", "date" ) ->
-                    setDictionaryItemForMacro "date" headElement latexState
-
-                ( "macro", "email" ) ->
-                    setDictionaryItemForMacro "email" headElement latexState
-
-                ( "macro", "revision" ) ->
-                    setDictionaryItemForMacro "revision" headElement latexState
-
-                ( "env", "theorem" ) ->
-                    handleTheoremNumbers latexState headElement
-
-                ( "env", "proposition" ) ->
-                    handleTheoremNumbers latexState headElement
-
-                ( "env", "lemma" ) ->
-                    handleTheoremNumbers latexState headElement
-
-                ( "env", "definition" ) ->
-                    handleTheoremNumbers latexState headElement
-
-                ( "env", "corollary" ) ->
-                    handleTheoremNumbers latexState headElement
-
-                ( "env", "equation" ) ->
-                    handleEquationNumbers latexState headElement
-
-                ( "env", "align" ) ->
-                    handleEquationNumbers latexState headElement
-
-                _ ->
-                    latexState
     in
-    newLatexState
-
-
-setDictionaryItemForMacro macroname headElement latexState =
-    let
-        value =
-            PT.unpackString headElement.value
-    in
-    setDictionaryItem macroname value latexState
-
-
-updateSection : LatexState -> String -> String
-updateSection latexState paragraph =
-    let
-        s1 =
-            getCounter "s1" latexState
-
-        s2 =
-            getCounter "s2" latexState
-
-        s3 =
-            getCounter "s3" latexState
-    in
-    if String.contains "\\section" paragraph then
-        paragraph
-            |> String.Extra.replace "\\section{" ("\\section{" ++ toString (s1 + 1) ++ " ")
-    else if String.contains "\\subsection" paragraph then
-        paragraph
-            |> String.Extra.replace "\\subsection{" ("\\subsection{" ++ toString s1 ++ "." ++ toString (s2 + 1) ++ " ")
-    else if String.contains "\\subsubsection" paragraph then
-        paragraph
-            |> String.Extra.replace "\\subsubsection{" ("\\subsubsection{" ++ toString s1 ++ "." ++ toString s2 ++ "." ++ toString (s3 + 1) ++ " ")
-    else
-        paragraph
-
-
-
-{- HANDLERS -}
-
-
-handleEquationNumbers : LatexState -> LatexInfo -> LatexState
-handleEquationNumbers latexState info =
-    let
-        {- label =
-           info.value
-               |> List.head
-               |> Maybe.withDefault (Macro "NULL" [])
-               |> PT.getFirstMacroArg "label"
-        -}
-        data =
-            info.value
-                |> List.head
-                |> Maybe.withDefault (Macro "NULL" [])
-
-        label =
-            case data of
-                LXString str ->
-                    getLabel str
-
-                _ ->
-                    ""
-
-        latexState1 =
-            incrementCounter "eqno" latexState
-
-        eqno =
-            getCounter "eqno" latexState1
-
-        s1 =
-            getCounter "s1" latexState1
-
-        latexState2 =
-            if label /= "" then
-                setCrossReference label (toString s1 ++ "." ++ toString eqno) latexState1
-            else
-                latexState1
-    in
-    latexState2
-
-
-handleTheoremNumbers : LatexState -> LatexInfo -> LatexState
-handleTheoremNumbers latexState info =
-    let
-        label =
-            info.value
-                |> List.head
-                |> Maybe.withDefault (Macro "NULL" [])
-                |> PT.getFirstMacroArg "label"
-
-        latexState1 =
-            incrementCounter "tno" latexState
-
-        tno =
-            getCounter "tno" latexState1
-
-        s1 =
-            getCounter "s1" latexState1
-
-        latexState2 =
-            if label /= "" then
-                setCrossReference label (toString s1 ++ "." ++ toString tno) latexState1
-            else
-                latexState1
-    in
-    latexState2
-
-
-
-{- HELPERS -}
-
-
-getAt : Int -> List String -> String
-getAt k list_ =
-    List.Extra.getAt k list_ |> Maybe.withDefault "xxx"
-
-
-getElement : Int -> List LatexExpression -> String
-getElement k list =
-    let
-        lxString =
-            List.Extra.getAt k list |> Maybe.withDefault (LXString "xxx")
-    in
-    case lxString of
-        LXString str ->
-            str
-
-        _ ->
-            "yyy"
-
-
-getLabel str =
-    let
-        maybeMacro =
-            str
-                |> String.trim
-                |> P.run (Parser.macro Parser.ws)
-    in
-    case maybeMacro of
-        Ok macro ->
-            macro |> PT.getFirstMacroArg "label"
-
-        _ ->
-            ""
+    latexStateReducerDispatcher ( headElement.typ, headElement.name ) headElement latexState
