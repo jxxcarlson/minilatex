@@ -45,6 +45,9 @@ hasMath expr =
         LatexList list ->
             list |> List.foldr (\x acc -> hasMath x || acc) False
 
+        LXError _ _ ->
+            False
+
 
 {-| Determine whether an environment has math in it
 -}

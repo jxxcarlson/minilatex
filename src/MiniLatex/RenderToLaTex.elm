@@ -66,6 +66,16 @@ render latexExpression =
         LXString str ->
             str
 
+        LXError source explanation ->
+            renderError source explanation
+
+
+renderError source explanation =
+    "ERROR: \n"
+        ++ source
+        ++ "\nExplanation: "
+        ++ explanation
+
 
 renderLatexList : List LatexExpression -> String
 renderLatexList args =

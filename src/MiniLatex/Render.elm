@@ -111,6 +111,35 @@ render latexState latexExpression =
         LXString str ->
             str
 
+        LXError source explanation ->
+            renderError source explanation
+
+
+renderError : String -> String -> String
+renderError source explanation =
+    "<div style=\"color: red\">ERROR: "
+        ++ (source |> normalizeError)
+        ++ "</div>\n"
+        ++ "<div style=\"color: blue\">"
+        ++ explanation
+        ++ "</div>"
+
+
+reduceBackslashes : String -> String
+reduceBackslashes str =
+    str |> String.Extra.replace "\\\\" "\\" |> String.Extra.replace "\\n" "\n"
+
+
+normalizeError : String -> String
+normalizeError str =
+    str
+        |> reduceBackslashes
+        |> String.Extra.replace "\"" ""
+        |> String.Extra.softBreak 50
+        |> List.take 5
+        |> String.join " "
+        |> (\x -> x ++ " ...")
+
 
 renderLatexList : LatexState -> List LatexExpression -> String
 renderLatexList latexState args =

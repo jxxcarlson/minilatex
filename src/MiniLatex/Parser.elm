@@ -11,6 +11,7 @@ module MiniLatex.Parser exposing (..)
 -- )
 
 import Dict
+import MiniLatex.ErrorMessages exposing (explanation)
 import MiniLatex.ParserHelpers exposing (..)
 import Parser exposing (..)
 
@@ -35,41 +36,7 @@ type LatexExpression
     | Macro String (List LatexExpression)
     | Environment String LatexExpression
     | LatexList (List LatexExpression)
-
-
-smacro : Parser LatexExpression
-smacro =
-    succeed SMacro
-        |= smacroName
-        |= repeat zeroOrMore arg
-        |= smacroBody
-
-
-smacroBody : Parser LatexExpression
-smacroBody =
-    inContext "smacroBody" <|
-        (succeed identity
-            |. spaces
-            |= repeat oneOrMore (oneOf [ specialWords, inlineMath spaces, macro spaces ])
-            |. symbol "\n\n"
-            |> map (\x -> LatexList x)
-        )
-
-
-
--- bibitem =
---     andThen (parseUntil "\n\n")
--- |= andThen (\x -> "foo") parseUntil "\n\n"
-
-
-defaultLatexList : LatexExpression
-defaultLatexList =
-    LatexList [ LXString "Parse Error" ]
-
-
-defaultLatexExpression : List LatexExpression
-defaultLatexExpression =
-    [ Macro "NULL" [] ]
+    | LXError String String
 
 
 parse : String -> List LatexExpression
@@ -83,32 +50,20 @@ parse text =
             list
 
         Err error ->
-            [ LXString (errorMessage2 error) ]
+            [ LXError (toString error.source) (explanation error) ]
 
         _ ->
             [ LXString "yada!" ]
 
 
-errorMessage error =
-    "<strong>Error:</strong> "
-        ++ "<pre class=\"errormessage\">"
-        ++ toString error.problem
-        ++ " </pre><strong>in </strong> </span><pre class=\"errormessage\">"
-        ++ error.source
-        ++ "</pre>"
+defaultLatexList : LatexExpression
+defaultLatexList =
+    LatexList [ LXString "Parse Error" ]
 
 
-errorMessage2 error =
-    "row: "
-        ++ toString error.row
-        ++ "\ncol: "
-        ++ toString error.col
-        ++ "\nProblem: "
-        ++ toString error.problem
-        ++ "\nContext: "
-        ++ toString error.context
-        ++ "\nSource: "
-        ++ error.source
+defaultLatexExpression : List LatexExpression
+defaultLatexExpression =
+    [ Macro "NULL" [] ]
 
 
 
@@ -186,6 +141,23 @@ macroName =
         )
 
 
+innerMacroName : Parser String
+innerMacroName =
+    inContext "innerMacroName" <|
+        succeed identity
+            |. spaces
+            |. symbol "\\"
+            |= keep oneOrMore notMacroSpecialCharacter
+
+
+smacro : Parser LatexExpression
+smacro =
+    succeed SMacro
+        |= smacroName
+        |= repeat zeroOrMore arg
+        |= smacroBody
+
+
 smacroName : Parser String
 smacroName =
     inContext "macroName" <|
@@ -196,13 +168,15 @@ smacroName =
         )
 
 
-innerMacroName : Parser String
-innerMacroName =
-    inContext "innerMacroName" <|
-        succeed identity
+smacroBody : Parser LatexExpression
+smacroBody =
+    inContext "smacroBody" <|
+        (succeed identity
             |. spaces
-            |. symbol "\\"
-            |= keep oneOrMore notMacroSpecialCharacter
+            |= repeat oneOrMore (oneOf [ specialWords, inlineMath spaces, macro spaces ])
+            |. symbol "\n\n"
+            |> map (\x -> LatexList x)
+        )
 
 
 
@@ -376,11 +350,7 @@ passThroughBody endWord envType =
 itemEnvironmentBody : String -> String -> Parser LatexExpression
 itemEnvironmentBody endWord envType =
     inContext "itemEnvironmentBody" <|
-        let
-            beginSymbol =
-                ""
-        in
-        succeed identity
+        (succeed identity
             |. ws
             |= repeat zeroOrMore item
             |. ws
@@ -388,6 +358,7 @@ itemEnvironmentBody endWord envType =
             |. ws
             |> map LatexList
             |> map (Environment envType)
+        )
 
 
 item : Parser LatexExpression
@@ -396,6 +367,7 @@ item =
         (succeed identity
             |. spaces
             |. symbol "\\item"
+            |. symbol " "
             |. spaces
             |= repeat zeroOrMore (oneOf [ words, inlineMath spaces, macro spaces ])
             |. ws
