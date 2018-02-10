@@ -1,7 +1,41 @@
-module MiniLatex.ErrorMessages exposing (explanation)
+module MiniLatex.ErrorMessages exposing (renderError)
 
 import Dict
+import Parser
 import String.Extra
+
+
+renderError : Parser.Error -> String
+renderError error =
+    let
+        source =
+            error.source
+
+        explanation_ =
+            explanation error
+    in
+    "<div style=\"color: red\">ERROR: "
+        ++ (source |> normalizeError)
+        ++ "</div>\n"
+        ++ "<div style=\"color: blue\">"
+        ++ explanation_
+        ++ "</div>"
+
+
+normalizeError : String -> String
+normalizeError str =
+    str
+        |> reduceBackslashes
+        |> String.Extra.replace "\"" ""
+        |> String.Extra.softBreak 50
+        |> List.take 5
+        |> String.join " "
+        |> (\x -> x ++ " ...")
+
+
+reduceBackslashes : String -> String
+reduceBackslashes str =
+    str |> String.Extra.replace "\\\\" "\\" |> String.Extra.replace "\\n" "\n"
 
 
 errorMessage1 error =
@@ -63,9 +97,6 @@ handleExpectingSymbol error errorWords =
 
 handleSecondWord error secondWord =
     let
-        _ =
-            Debug.log "secondWord" secondWord
-
         lead =
             leadErrorDescription error
     in

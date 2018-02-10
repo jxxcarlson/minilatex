@@ -5,6 +5,7 @@ module MiniLatex.RenderLatexForExport
 
 import Dict
 import List.Extra
+import MiniLatex.ErrorMessages as ErrorMessages
 import MiniLatex.Image as Image
 import MiniLatex.JoinStrings as JoinStrings
 import MiniLatex.Paragraph
@@ -29,11 +30,11 @@ render latexExpression =
         Comment str ->
             renderComment str
 
-        Macro name args ->
-            renderMacro name args
+        Macro name optArgs args ->
+            renderMacro name optArgs args
 
-        SMacro name args le ->
-            renderSMacro name args le
+        SMacro name optArgs args le ->
+            renderSMacro name optArgs args le
 
         Item level latexExpression ->
             renderItem level latexExpression
@@ -44,8 +45,8 @@ render latexExpression =
         DisplayMath str ->
             "$$" ++ str ++ "$$"
 
-        Environment name args ->
-            renderEnvironment name args
+        Environment name args body ->
+            renderEnvironment name args body
 
         LatexList args ->
             renderLatexList args
@@ -53,15 +54,8 @@ render latexExpression =
         LXString str ->
             str
 
-        LXError source explanation ->
-            renderError source explanation
-
-
-renderError source explanation =
-    "ERROR: \n"
-        ++ source
-        ++ "\nExplanation: "
-        ++ explanation
+        LXError error ->
+            ErrorMessages.renderError error
 
 
 renderLatexList : List LatexExpression -> String
@@ -74,6 +68,11 @@ renderArgList args =
     args |> List.map render |> List.map (\x -> "{" ++ x ++ "}") |> String.join ""
 
 
+renderOptArgList : List LatexExpression -> String
+renderOptArgList args =
+    args |> List.map render |> List.map (\x -> "[" ++ x ++ "]") |> String.join ""
+
+
 renderItem : Int -> LatexExpression -> String
 renderItem level latexExpression =
     "\\item " ++ render latexExpression ++ "\n\n"
@@ -84,23 +83,23 @@ renderComment str =
     "% " ++ str ++ "\n"
 
 
-renderEnvironment : String -> LatexExpression -> String
-renderEnvironment name body =
+renderEnvironment : String -> List LatexExpression -> LatexExpression -> String
+renderEnvironment name args body =
     case Dict.get name renderEnvironmentDict of
         Just f ->
             f body
 
         Nothing ->
-            renderDefaultEnvironment name body
+            renderDefaultEnvironment name args body
 
 
-renderDefaultEnvironment : String -> LatexExpression -> String
-renderDefaultEnvironment name body =
+renderDefaultEnvironment : String -> List LatexExpression -> LatexExpression -> String
+renderDefaultEnvironment name args body =
     let
         slimBody =
             String.trim <| render body
     in
-    "\\begin{" ++ name ++ "}\n" ++ slimBody ++ "\n\\end{" ++ name ++ "}\n"
+    "\\begin{" ++ name ++ "}" ++ renderArgList args ++ "\n" ++ slimBody ++ "\n\\end{" ++ name ++ "}\n"
 
 
 renderEnvironmentDict : Dict.Dict String (LatexExpression -> String)
@@ -123,24 +122,24 @@ renderUseForWeb body =
     ""
 
 
-renderMacroDict : Dict.Dict String (List LatexExpression -> String)
+renderMacroDict : Dict.Dict String (List LatexExpression -> List LatexExpression -> String)
 renderMacroDict =
     Dict.fromList
-        [ ( "image", \x -> renderImage x )
+        [ ( "image", \x y -> renderImage x )
         ]
 
 
-renderMacro : String -> List LatexExpression -> String
-renderMacro name args =
-    macroRenderer name args
+renderMacro : String -> List LatexExpression -> List LatexExpression -> String
+renderMacro name optArgs args =
+    macroRenderer name optArgs args
 
 
-renderSMacro : String -> List LatexExpression -> LatexExpression -> String
-renderSMacro name args le =
-    " \\" ++ name ++ renderArgList args ++ " " ++ render le ++ "\n\n"
+renderSMacro : String -> List LatexExpression -> List LatexExpression -> LatexExpression -> String
+renderSMacro name optArgs args le =
+    " \\" ++ name ++ renderOptArgList optArgs ++ renderArgList args ++ " " ++ render le ++ "\n\n"
 
 
-macroRenderer : String -> (List LatexExpression -> String)
+macroRenderer : String -> (List LatexExpression -> List LatexExpression -> String)
 macroRenderer name =
     case Dict.get name renderMacroDict of
         Just f ->
@@ -150,9 +149,9 @@ macroRenderer name =
             reproduceMacro name
 
 
-reproduceMacro : String -> List LatexExpression -> String
-reproduceMacro name args =
-    " \\" ++ name ++ renderArgList args
+reproduceMacro : String -> List LatexExpression -> List LatexExpression -> String
+reproduceMacro name optArgs args =
+    " \\" ++ name ++ renderOptArgList optArgs ++ renderArgList args
 
 
 getExportUrl url =

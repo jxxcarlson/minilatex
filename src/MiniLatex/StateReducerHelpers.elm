@@ -20,7 +20,7 @@ import Parser as P
 
 
 type alias LatexInfo =
-    { typ : String, name : String, value : List LatexExpression }
+    { typ : String, name : String, options : List LatexExpression, value : List LatexExpression }
 
 
 setSectionCounters : LatexInfo -> LatexState -> LatexState
@@ -110,13 +110,28 @@ setDictionaryItemForMacro latexInfo latexState =
     setDictionaryItem latexInfo.name value latexState
 
 
+setBibItemXRef : LatexInfo -> LatexState -> LatexState
+setBibItemXRef latexInfo latexState =
+    let
+        label =
+            PT.unpackString latexInfo.value
+
+        value =
+            if latexInfo.options == [] then
+                label
+            else
+                PT.unpackString latexInfo.options
+    in
+    setDictionaryItem ("bibitem:" ++ label) value latexState
+
+
 setTheoremNumber : LatexInfo -> LatexState -> LatexState
 setTheoremNumber info latexState =
     let
         label =
             info.value
                 |> List.head
-                |> Maybe.withDefault (Macro "NULL" [])
+                |> Maybe.withDefault (Macro "NULL" [] [])
                 |> PT.getFirstMacroArg "label"
 
         latexState1 =
@@ -143,7 +158,7 @@ setEquationNumber info latexState =
         data =
             info.value
                 |> List.head
-                |> Maybe.withDefault (Macro "NULL" [])
+                |> Maybe.withDefault (Macro "NULL" [] [])
 
         label =
             case data of

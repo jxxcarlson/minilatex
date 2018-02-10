@@ -8,7 +8,7 @@ import MiniLatex.Parser exposing (LatexExpression(..))
 isMacro : String -> LatexExpression -> Bool
 isMacro macroName latexExpression =
     case latexExpression of
-        Macro name _ ->
+        Macro name _ _ ->
             name
                 == macroName
 
@@ -18,7 +18,7 @@ isMacro macroName latexExpression =
 
 getMacroArgs macroName latexExpression =
     case latexExpression of
-        Macro name args ->
+        Macro name optArgs args ->
             if name == macroName then
                 args
                     |> List.map latexList2List

@@ -33,19 +33,19 @@ hasMath expr =
         DisplayMath str ->
             True
 
-        Macro str expr ->
-            expr |> List.foldr (\x acc -> hasMath x || acc) False
+        Macro str optArgs args ->
+            args |> List.foldr (\x acc -> hasMath x || acc) False
 
-        SMacro str expr str2 ->
-            expr |> List.foldr (\x acc -> hasMath x || acc) False
+        SMacro str optArgs args str2 ->
+            args |> List.foldr (\x acc -> hasMath x || acc) False
 
-        Environment str expr ->
-            envHasMath str expr
+        Environment str args body ->
+            envHasMath str body
 
         LatexList list ->
             list |> List.foldr (\x acc -> hasMath x || acc) False
 
-        LXError _ _ ->
+        LXError _ ->
             False
 
 

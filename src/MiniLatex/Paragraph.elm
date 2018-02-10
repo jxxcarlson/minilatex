@@ -9,11 +9,13 @@ type ParserState
     = Start
     | InParagraph
     | InBlock String
+    | IgnoreLine
     | Error
 
 
 type LineType
     = Blank
+    | Ignore
     | Text
     | BeginBlock String
     | EndBlock String
@@ -61,6 +63,8 @@ lineType : String -> LineType
 lineType line =
     if line == "" then
         Blank
+    else if line == "\\begin{thebibliography}" || line == "\\end{thebibliography}" then
+        Ignore
     else if String.startsWith "\\begin" line then
         BeginBlock (getBeginArg line)
     else if String.startsWith "\\end" line then
@@ -82,6 +86,18 @@ nextState line parserState =
             InParagraph
 
         ( Start, BeginBlock arg ) ->
+            InBlock arg
+
+        ( Start, Ignore ) ->
+            IgnoreLine
+
+        ( IgnoreLine, Blank ) ->
+            Start
+
+        ( IgnoreLine, Text ) ->
+            InParagraph
+
+        ( IgnoreLine, BeginBlock arg ) ->
             InBlock arg
 
         ( InBlock arg, Blank ) ->
@@ -168,6 +184,11 @@ updateParserRecord line parserRecord =
                 , state = state2
             }
 
+        IgnoreLine ->
+            { parserRecord
+                | state = state2
+            }
+
         Error ->
             parserRecord
 
@@ -190,7 +211,10 @@ logicalParagraphify text =
         lastState =
             logicalParagraphParse text
     in
-    lastState.paragraphList ++ [ lastState.currentParagraph ] |> List.filter (\x -> x /= "") |> List.map (\paragraph -> paragraph ++ "\n\n    ")
+    lastState.paragraphList
+        ++ [ lastState.currentParagraph ]
+        |> List.filter (\x -> x /= "")
+        |> List.map (\paragraph -> paragraph ++ "\n\n\n")
 
 
 paragraphify : String -> List String

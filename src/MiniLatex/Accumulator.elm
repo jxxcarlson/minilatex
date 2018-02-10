@@ -61,7 +61,7 @@ type alias RenderReducerTransformer a b c =
 
 
 type alias LatexInfo =
-    { typ : String, name : String, value : List LatexExpression }
+    { typ : String, name : String, options : List LatexExpression, value : List LatexExpression }
 
 
 
@@ -165,14 +165,17 @@ renderTransformer render latexStateReducer input acc =
 info : LatexExpression -> LatexInfo
 info latexExpression =
     case latexExpression of
-        Macro name args ->
-            { typ = "macro", name = name, value = args }
+        Macro name optArgs args ->
+            { typ = "macro", name = name, options = optArgs, value = args }
 
-        Environment name body ->
-            { typ = "env", name = name, value = [ body ] }
+        SMacro name optArgs args body ->
+            { typ = "smacro", name = name, options = optArgs, value = args }
+
+        Environment name args body ->
+            { typ = "env", name = name, options = args, value = [ body ] }
 
         _ ->
-            { typ = "null", name = "null", value = [] }
+            { typ = "null", name = "null", options = [], value = [] }
 
 
 
@@ -198,6 +201,7 @@ latexStateReducerDict =
         , ( ( "env", "corollary" ), \x y -> SRH.setTheoremNumber x y )
         , ( ( "env", "equation" ), \x y -> SRH.setEquationNumber x y )
         , ( ( "env", "align" ), \x y -> SRH.setEquationNumber x y )
+        , ( ( "smacro", "bibitem" ), \x y -> SRH.setBibItemXRef x y )
         ]
 
 
@@ -218,9 +222,17 @@ latexStateReducer parsedParagraph latexState =
             parsedParagraph
                 |> List.head
                 |> Maybe.map info
-                |> Maybe.withDefault (LatexInfo "null" "null" [ Macro "null" [] ])
+                |> Maybe.withDefault (LatexInfo "null" "null" [] [])
 
         he =
             { typ = "macro", name = "setcounter", value = [ LatexList [ LXString "section" ], LatexList [ LXString "7" ] ] }
     in
     latexStateReducerDispatcher ( headElement.typ, headElement.name ) headElement latexState
+
+
+
+{-
+
+   |> Maybe.withDefault (LatexInfo "null" "null" [ Macro "null" [] [] ])
+
+-}

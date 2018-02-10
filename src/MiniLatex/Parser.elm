@@ -1,16 +1,16 @@
-module MiniLatex.Parser
-    exposing
-        ( LatexExpression(..)
-        , defaultLatexList
-        , endWord
-        , envName
-        , latexList
-        , macro
-        , parse
-        )
+module MiniLatex.Parser exposing (..)
+
+-- exposing
+--     ( LatexExpression(..)
+--     , defaultLatexList
+--     , endWord
+--     , envName
+--     , latexList
+--     , macro
+--     , parse
+--     )
 
 import Dict
-import MiniLatex.ErrorMessages exposing (explanation)
 import MiniLatex.ParserHelpers exposing (..)
 import Parser exposing (..)
 
@@ -31,11 +31,11 @@ type LatexExpression
     | Item Int LatexExpression
     | InlineMath String
     | DisplayMath String
-    | SMacro String (List LatexExpression) LatexExpression
-    | Macro String (List LatexExpression)
-    | Environment String LatexExpression
+    | SMacro String (List LatexExpression) (List LatexExpression) LatexExpression -- SMacro name optArgs args body
+    | Macro String (List LatexExpression) (List LatexExpression) -- Macro name optArgs args
+    | Environment String (List LatexExpression) LatexExpression -- Environment name optArgs body
     | LatexList (List LatexExpression)
-    | LXError String String
+    | LXError Error
 
 
 parse : String -> List LatexExpression
@@ -49,7 +49,7 @@ parse text =
             list
 
         Err error ->
-            [ LXError (toString error.source) (explanation error) ]
+            [ LXError error ]
 
         _ ->
             [ LXString "yada!" ]
@@ -62,7 +62,7 @@ defaultLatexList =
 
 defaultLatexExpression : List LatexExpression
 defaultLatexExpression =
-    [ Macro "NULL" [] ]
+    [ Macro "NULL" [] [] ]
 
 
 
@@ -91,6 +91,16 @@ specialWords =
         )
 
 
+macroArgWords : Parser LatexExpression
+macroArgWords =
+    inContext "specialWords" <|
+        (succeed identity
+            |= repeat oneOrMore macroArgWord
+            |> map (String.join " ")
+            |> map LXString
+        )
+
+
 texComment : Parser LatexExpression
 texComment =
     inContext "texComment" <|
@@ -108,13 +118,37 @@ texComment =
 -}
 
 
+type alias Macro2 =
+    String (List LatexExpression) (List LatexExpression)
+
+
 macro : Parser () -> Parser LatexExpression
 macro wsParser =
     inContext "macro" <|
-        succeed Macro
+        (succeed Macro
             |= macroName
+            |= repeat zeroOrMore optionalArg
             |= repeat zeroOrMore arg
             |. wsParser
+        )
+
+
+joinArgs : Parser (List LatexExpression) -> Parser (List LatexExpression) -> Parser (List LatexExpression)
+joinArgs x y =
+    map2 (++) x y
+
+
+{-| Use to parse arguments for macros
+-}
+optionalArg : Parser LatexExpression
+optionalArg =
+    inContext "optionalArg" <|
+        (succeed identity
+            |. symbol "["
+            |= repeat zeroOrMore (oneOf [ specialWords, inlineMath spaces ])
+            |. symbol "]"
+            |> map LatexList
+        )
 
 
 {-| Use to parse arguments for macros
@@ -123,8 +157,8 @@ arg : Parser LatexExpression
 arg =
     inContext "arg" <|
         (succeed identity
-            |. keyword "{"
-            |= repeat zeroOrMore (oneOf [ specialWords, inlineMath spaces, lazy (\_ -> macro ws) ])
+            |. symbol "{"
+            |= repeat zeroOrMore (oneOf [ macroArgWords, inlineMath spaces, lazy (\_ -> macro ws) ])
             |. symbol "}"
             |> map LatexList
         )
@@ -153,6 +187,7 @@ smacro : Parser LatexExpression
 smacro =
     succeed SMacro
         |= smacroName
+        |= repeat zeroOrMore optionalArg
         |= repeat zeroOrMore arg
         |= smacroBody
 
@@ -323,7 +358,7 @@ standardEnvironmentBody endWord envType =
             |. symbol endWord
             |. ws
             |> map LatexList
-            |> map (Environment envType)
+            |> map (Environment envType [])
         )
 
 
@@ -339,7 +374,7 @@ passThroughBody endWord envType =
             |= parseUntil endWord
             |. ws
             |> map LXString
-            |> map (Environment envType)
+            |> map (Environment envType [])
         )
 
 
@@ -357,7 +392,7 @@ itemEnvironmentBody endWord envType =
             |. symbol endWord
             |. ws
             |> map LatexList
-            |> map (Environment envType)
+            |> map (Environment envType [])
         )
 
 
@@ -382,13 +417,13 @@ item =
 tabularEnvironmentBody : String -> String -> Parser LatexExpression
 tabularEnvironmentBody endWord envType =
     inContext "tabularEnvironmentBody" <|
-        (succeed identity
+        (succeed (Environment envType)
             |. ws
+            |= repeat zeroOrMore arg
             |= tableBody
             |. ws
             |. symbol endWord
             |. ws
-            |> map (Environment envType)
         )
 
 
@@ -396,7 +431,7 @@ tableBody : Parser LatexExpression
 tableBody =
     inContext "tableBody" <|
         (succeed identity
-            |. repeat zeroOrMore arg
+            --|. repeat zeroOrMore arg
             |. ws
             |= repeat oneOrMore tableRow
             |> map LatexList
