@@ -6,11 +6,25 @@ MiniLaTeX is a subset of LaTeX that can be rendered
 into pdf by standard tools such as `pdflatex` or
 into HTML by a suitable application, e.g.,
 <a href="https://jxxcarlson.github.io/app/minilatex/src/index.html">MiniLateX Demo</a>
-or <a href="http://www.knode.io">www.knode.io</a>.  For a technical discussion,
-see the Hackernoon article,
+or <a href="http://www.knode.io">www.knode.io</a>.
+
+You can run the demo app using the code in the `examples` folder:
+
+```
+  $ cd examples
+  $ elm make Main.elm --output app.js
+```
+
+Then click on the resulting `index.html` file.
+
+
+Links:
+------
+
+*  Hackernoon article,
 <a href="https://hackernoon.com/towards-latex-in-the-browser-2ff4d94a0c08">Towards LaTeX in the Browser</a>.
 
-You can also experiment with MiniLaTeX using this <a href="https://ellie-app.com/3n2QNQdTMa1/1">Ellie</a>.
+* <a href="http://minilatex.com">MiniLatex blog</a>
 
 
 Basics
