@@ -18,11 +18,11 @@ You can run the demo app using the code in the `examples` folder:
 Then click on the resulting `index.html` file.
 
 
-Links:
+Links
 ------
 
 *  Hackernoon article,
-<a href="https://hackernoon.com/towards-latex-in-the-browser-2ff4d94a0c08">Towards LaTeX in the Browser</a>.
+<a href="https://hackernoon.com/towards-latex-in-the-browser-2ff4d94a0c08">Towards LaTeX in the Browser</a>
 
 * <a href="http://minilatex.com">MiniLatex blog</a>
 
