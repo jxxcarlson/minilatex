@@ -265,7 +265,7 @@ displayMathDollar =
             |. spaces
             |. symbol "$$"
             |= parseUntil "$$"
-            |. spaces
+            |. ws
 
 
 displayMathBrackets : Parser LatexExpression
