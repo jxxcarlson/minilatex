@@ -67,7 +67,7 @@ word =
             |= keep oneOrMore notSpecialCharacter
             |. ws
     )
-        |> map transformWords
+        -- |> map transformWords
 
 
 {-| Like `word`, but after a word is recognized spaces, not spaces + newlines are consumed
@@ -131,8 +131,9 @@ notMacroSpecialCharacter c =
 transformWords : String -> String
 transformWords str =
     if str == "--" then
-        "&ndash;"
+        "\\ndash"
     else if str == "---" then
-        "&mdash;"
+        "\\mdash"
     else
         str
+

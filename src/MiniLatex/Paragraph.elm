@@ -39,7 +39,7 @@ getBeginArg line =
                 Err _ ->
                     ""
     in
-    arg
+        arg
 
 
 getEndArg : String -> String
@@ -56,7 +56,7 @@ getEndArg line =
                 Err _ ->
                     ""
     in
-    arg
+        arg
 
 
 lineType : String -> LineType
@@ -164,33 +164,33 @@ updateParserRecord line parserRecord =
         state2 =
             nextState line parserRecord.state
     in
-    case state2 of
-        Start ->
-            { parserRecord
-                | currentParagraph = ""
-                , paragraphList = parserRecord.paragraphList ++ [ joinLines parserRecord.currentParagraph line ]
-                , state = state2
-            }
+        case state2 of
+            Start ->
+                { parserRecord
+                    | currentParagraph = ""
+                    , paragraphList = parserRecord.paragraphList ++ [ joinLines parserRecord.currentParagraph line ]
+                    , state = state2
+                }
 
-        InParagraph ->
-            { parserRecord
-                | currentParagraph = joinLines parserRecord.currentParagraph line
-                , state = state2
-            }
+            InParagraph ->
+                { parserRecord
+                    | currentParagraph = joinLines parserRecord.currentParagraph line
+                    , state = state2
+                }
 
-        InBlock arg ->
-            { parserRecord
-                | currentParagraph = joinLines parserRecord.currentParagraph (fixLine line)
-                , state = state2
-            }
+            InBlock arg ->
+                { parserRecord
+                    | currentParagraph = joinLines parserRecord.currentParagraph (fixLine line)
+                    , state = state2
+                }
 
-        IgnoreLine ->
-            { parserRecord
-                | state = state2
-            }
+            IgnoreLine ->
+                { parserRecord
+                    | state = state2
+                }
 
-        Error ->
-            parserRecord
+            Error ->
+                parserRecord
 
 
 logicalParagraphParse : String -> ParserRecord
@@ -203,7 +203,7 @@ logicalParagraphParse text =
 {-| logicalParagraphify text: split text into logical
 parapgraphs, where these are either normal paragraphs, i.e.,
 blocks text with no blank lines surrounded by blank lines,
-or outer blocks of the form \begin{_} ... \end{_}.
+or outer blocks of the form \begin{*} ... \end{*}.
 -}
 logicalParagraphify : String -> List String
 logicalParagraphify text =
@@ -211,10 +211,10 @@ logicalParagraphify text =
         lastState =
             logicalParagraphParse text
     in
-    lastState.paragraphList
-        ++ [ lastState.currentParagraph ]
-        |> List.filter (\x -> x /= "")
-        |> List.map (\paragraph -> paragraph ++ "\n\n\n")
+        lastState.paragraphList
+            ++ [ lastState.currentParagraph ]
+            |> List.filter (\x -> x /= "")
+            |> List.map (\paragraph -> paragraph ++ "\n\n\n")
 
 
 paragraphify : String -> List String

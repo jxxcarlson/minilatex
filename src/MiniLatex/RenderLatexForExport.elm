@@ -1,7 +1,5 @@
 module MiniLatex.RenderLatexForExport
-    exposing
-        ( renderLatexForExport
-        )
+    exposing ( renderLatexForExport )
 
 import Dict
 import List.Extra
@@ -11,6 +9,7 @@ import MiniLatex.JoinStrings as JoinStrings
 import MiniLatex.Paragraph
 import MiniLatex.Parser exposing (LatexExpression(..), defaultLatexList, latexList)
 import MiniLatex.Utility as Utility
+import String.Extra
 
 
 {-| parse a string and render it back into Latex
@@ -65,8 +64,38 @@ renderLatexList args =
 
 renderArgList : List LatexExpression -> String
 renderArgList args =
-    args |> List.map render |> List.map (\x -> "{" ++ x ++ "}") |> String.join ""
+    args 
+      |> List.map render 
+      |> List.map fixBadChars
+      |> List.map (\x -> "{" ++ x ++ "}") 
+      |> String.join ""
 
+renderCleanedArgList : List LatexExpression -> String
+renderCleanedArgList args =
+    args 
+      |> List.map render 
+      |> List.map fixBadChars
+      |> List.map (\x -> "{" ++ x ++ "}") 
+      |> String.join ""
+
+
+renderSpecialArgList : List LatexExpression -> String
+renderSpecialArgList args =
+  let
+      head = List.head args
+      tail = List.tail args 
+      renderedHead = Maybe.map render head
+      renderedTail = Maybe.map renderCleanedArgList tail
+  in
+      case (renderedHead, renderedTail) of 
+        (Just h, Just t) -> "{" ++ h ++ "}" ++ t 
+        _ -> ""      
+
+fixBadChars : String -> String
+fixBadChars str =
+  str 
+    |> String.Extra.replace "_" "\\_" 
+    |> String.Extra.replace "#" "\\#"
 
 renderOptArgList : List LatexExpression -> String
 renderOptArgList args =
@@ -125,7 +154,9 @@ renderUseForWeb body =
 renderMacroDict : Dict.Dict String (List LatexExpression -> List LatexExpression -> String)
 renderMacroDict =
     Dict.fromList
-        [ ( "image", \x y -> renderImage x )
+        [ ( "image", \x y -> renderImage y )
+         , ( "code", \x y -> renderCode x y )
+         , ( "href", \x y -> renderHref x y )
         ]
 
 
@@ -147,6 +178,15 @@ macroRenderer name =
 
         Nothing ->
             reproduceMacro name
+
+renderCode : List LatexExpression -> List LatexExpression -> String
+renderCode optArgs args =
+    " \\code" ++ renderOptArgList optArgs ++ renderCleanedArgList args
+
+renderHref : List LatexExpression -> List LatexExpression -> String
+renderHref optArgs args =
+    " \\href" ++ renderSpecialArgList args
+
 
 
 reproduceMacro : String -> List LatexExpression -> List LatexExpression -> String
@@ -185,9 +225,11 @@ renderImage args =
 
         imageAttrs =
             Image.parseImageAttributes attributeString
+        
+        width_ = imageAttrs.width |> toFloat |> (\x -> 2.5*x)
 
         width =
-            toString imageAttrs.width ++ "px"
+            toString width_ ++ "px"
     in
     case ( imageAttrs.float, imageAttrs.align ) of
         ( "left", _ ) ->

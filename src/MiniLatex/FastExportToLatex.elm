@@ -1,4 +1,4 @@
-module MiniLatex.FastExportToLatex exposing (..)
+module MiniLatex.FastExportToLatex exposing (export)
 
 import MiniLatex.JoinStrings as JoinStrings
 import MiniLatex.Paragraph as Paragraph
@@ -24,8 +24,14 @@ processParagraph par =
         signature =
             if String.left 6 prefix == "\\begin" then
                 String.dropLeft 7 prefix |> String.dropRight 1
+            else if String.contains  "\\code" par then
+                "code"
+            else if String.contains "\\href" par then
+                "href"
             else
                 String.left 6 prefix
+
+            
     in
     case signature of
         "\\image" ->
@@ -34,8 +40,14 @@ processParagraph par =
         "listin" ->
             RLE.renderLatexForExport par
 
+        "code" -> 
+           RLE.renderLatexForExport par 
+
+        "href" -> 
+           RLE.renderLatexForExport par 
+
         "usefor" ->
             RLE.renderLatexForExport par
 
         _ ->
-            par
+            RLE.renderLatexForExport par

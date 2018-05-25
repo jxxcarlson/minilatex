@@ -39,7 +39,7 @@ texPrefix =
 
 \\newcommand{\\imagecenter}[3]{{
    \\centering
-    \\includegraphics[width=0.30\\textwidth]{#1}
+    \\includegraphics[width=0.80\\textwidth]{#1}
     \\vglue-10pt \\par {#2}
 }}
 
