@@ -1,5 +1,5 @@
 {
-    "version": "2.1.8",
+    "version": "2.1.9",
     "summary": "minilatex provides functions for rendering a subset of LaTeX into HTML.",
     "repository": "https://github.com/jxxcarlson/minilatex.git",
     "license": "BSD3",
